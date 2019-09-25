@@ -1,0 +1,6 @@
+third_party
+/build
+/.vs
+/.vscode
+/.emacs
+*~
