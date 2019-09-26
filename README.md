@@ -1,2 +1,6 @@
 # VMUtils
-An self-contained header-only library which provides some assistant functions such as timer, thread pool and signal-slot
+An self-contained library which provides some assistant functions such as timer, thread pool and signal-slot.
+
+* ### Build
+
+**C++14** and **CMake 3.12** or higher is required.

@@ -29,7 +29,6 @@ namespace ysl
 
 	}
 
-
 	void Error(const char* fmt, ...)
 	{
 		va_list args;
