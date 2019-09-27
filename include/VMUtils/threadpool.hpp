@@ -9,7 +9,7 @@
 #include <mutex>
 #include <future>
 
-namespace ysl
+namespace vm
 {
 class ThreadPool
 {
@@ -80,6 +80,6 @@ inline ThreadPool::~ThreadPool()
 		worker.join();
 }
 
-}  // namespace ysl
+}  // namespace vm
 
 #endif

@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 
-namespace ysl
+namespace vm
 {
 /**
  * \brief The internal class is used to manage the destruction of the slot.
@@ -132,6 +132,6 @@ public:
 private:
 	std::shared_ptr<_Signal_pImpl<FuncType>> impl;
 };
-}  // namespace ysl
+}  // namespace vm
 
 #endif
