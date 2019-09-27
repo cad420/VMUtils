@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <iostream>
+
 namespace ysl
 {
 namespace vm
@@ -36,6 +37,7 @@ public:
 	auto elapse_second() const { return elapse() * 1.0 / 1000000; }
 	double duration_to_seconds() const { return duration() * 1.0 / 1000000; }
 };
+
 }  // namespace vm
 
 }  // namespace ysl
