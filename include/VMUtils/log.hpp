@@ -16,8 +16,8 @@ namespace __inner__
 template <typename... Args>
 inline void dump( const string &patt, bool same_line, Args &&... args )
 {
-	fprintf( stderr, same_line ? "%s\r" : "%s\n",
-			 fmt( patt, std::forward<Args>( args )... ).c_str() );
+	auto v = fmt( patt, std::forward<Args>( args )... );
+	fprintf( stderr, same_line ? "%s\r" : "%s\n", v.c_str() );
 }
 
 namespace __exported__
