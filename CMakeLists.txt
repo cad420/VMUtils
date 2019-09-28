@@ -4,15 +4,15 @@ project(vmutils)
 
 aux_source_directory(src SRC_LIST)
 
-option(VMUTILS_SHARED_LIBRARY "Set to ON to build using dynamic linking" ON)
+#option(VMUTILS_SHARED_LIBRARY "Set to ON to build using dynamic linking" ON)
 if(VMUTILS_SHARED_LIBRARY)
-add_definitions(-DVMUTILS_SHARED_LIBRARY)
-set(VMUTILS_SHARED "SHARED")
+add_library(vmutils SHARED)
+target_compile_definitions(vmutils PUBLIC -DVMUTILS_SHARED_LIBRARY)
 else()
-set(VMUTILS_SHARED "STATIC")
+add_library(vmutils STATIC)
 endif()
 
-add_library(vmutils ${VMUTILS_SHARED} ${SRC_LIST})
+target_sources(vmutils PRIVATE ${SRC_LIST})
 target_include_directories(vmutils PUBLIC "include")
 
 
