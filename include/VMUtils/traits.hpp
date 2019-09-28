@@ -3,15 +3,9 @@
 #include <type_traits>
 #include <functional>
 #include <tuple>
+#include "modules.hpp"
 
-namespace vm
-{
-namespace __inner__
-{
-namespace __exported__
-{
-}
-using namespace __exported__;
+VM_BEGIN_MODULE( vm )
 
 template <typename T>
 struct Helper;
@@ -79,32 +73,27 @@ struct InferFunctionAux<Ret, std::tuple<Args...>>
 	using type = std::function<Ret( Args... )>;
 };
 
-namespace __exported__
+VM_EXPORT
 {
-template <typename F>
-struct InvokeResultOf
-{
-	using type = typename Helper<F>::return_type;
-};
+	template <typename F>
+	struct InvokeResultOf
+	{
+		using type = typename Helper<F>::return_type;
+	};
 
-template <typename F>
-struct ArgumentTypeOf
-{
-	using type = typename Helper<F>::argument_type;
-};
+	template <typename F>
+	struct ArgumentTypeOf
+	{
+		using type = typename Helper<F>::argument_type;
+	};
 
-template <typename F>
-struct InferFunction
-{
-	using type = typename InferFunctionAux<
-	  typename InvokeResultOf<F>::type,
-	  typename ArgumentTypeOf<F>::type>::type;
-};
+	template <typename F>
+	struct InferFunction
+	{
+		using type = typename InferFunctionAux<
+		  typename InvokeResultOf<F>::type,
+		  typename ArgumentTypeOf<F>::type>::type;
+	};
+}
 
-}  // namespace __exported__
-
-}  // namespace __inner__
-
-using namespace __inner__::__exported__;
-
-}  // namespace vm
+VM_END_MODULE()
