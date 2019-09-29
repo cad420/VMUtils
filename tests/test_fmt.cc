@@ -2,6 +2,7 @@
 #include <VMUtils/fmt.hpp>
 
 using namespace vm;
+using namespace std;
 
 TEST( test_fmt, test_fmt )
 {
@@ -16,5 +17,13 @@ TEST( test_fmt, test_fmt )
 		EXPECT_EQ( b, "{" );
 		auto c = fmt( "}}" );
 		EXPECT_EQ( c, "}" );
+	}
+
+	{
+		ostringstream os;
+		fprint( os, "{} a, b", 1, 2 );
+		EXPECT_EQ( os.str(), "1 a, b" );
+		fprintln( os, "{}{}", "qw", "1" );
+		EXPECT_EQ( os.str(), "1 a, bqw1\n" );
 	}
 }

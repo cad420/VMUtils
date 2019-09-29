@@ -45,13 +45,11 @@ template <typename T>
 void fmt_array( ostream &os, T const &t, size_t len )
 {
 	fmt_impl( os, "[" );
-	if ( len )
-	{
-		fmt_impl( os, t[0] );
+	if ( len ) {
+		fmt_impl( os, t[ 0 ] );
 	}
-	for ( auto i = 1; i < len; ++i )
-	{
-		fmt_impl( os, ", ", t[i] );
+	for ( auto i = 1; i < len; ++i ) {
+		fmt_impl( os, ", ", t[ i ] );
 	}
 	fmt_impl( os << "]" );
 }
@@ -73,27 +71,27 @@ struct FmtStrategy<array<T, N>>
 	}
 };
 template <typename T, size_t N>
-struct FmtStrategy<T[N]>
+struct FmtStrategy<T[ N ]>
 {
-	static void apply( ostream &os, T t[N] )
+	static void apply( ostream &os, T t[ N ] )
 	{
 		fmt_array( os, t, N );
 	}
 };
 template <size_t N>
-struct FmtStrategy<char[N]>: FmtStrategy<char*>
+struct FmtStrategy<char[ N ]> : FmtStrategy<char *>
 {
 };
 template <size_t N>
-struct FmtStrategy<const char[N]>: FmtStrategy<const char*>
+struct FmtStrategy<const char[ N ]> : FmtStrategy<const char *>
 {
 };
 template <size_t N>
-struct FmtStrategy<volatile char[N]>: FmtStrategy<volatile char*>
+struct FmtStrategy<volatile char[ N ]> : FmtStrategy<volatile char *>
 {
 };
 template <size_t N>
-struct FmtStrategy<const volatile char[N]>: FmtStrategy<const volatile char*>
+struct FmtStrategy<const volatile char[ N ]> : FmtStrategy<const volatile char *>
 {
 };
 
@@ -102,12 +100,10 @@ void fmt_map( ostream &os, T const &t )
 {
 	fmt_impl( os, "{" );
 	bool first = true;
-	for ( auto &e: t )
-	{
+	for ( auto &e : t ) {
 		auto &k = e.first;
 		auto &v = e.second;
-		if ( !first )
-		{
+		if ( !first ) {
 			fmt_impl( os, ", " );
 		}
 		fmt_impl( os, k, ": ", v );
@@ -195,8 +191,8 @@ struct FmtImpl
 					   T &&t, Rest &&... rest )
 	{
 		patt = move_fn(
-		  patt, raw, 
-		  [&]( auto _ ) { fmt_impl( os, std::forward<T>( t ) ); }, 
+		  patt, raw,
+		  [&]( auto _ ) { fmt_impl( os, std::forward<T>( t ) ); },
 		  [&]( auto _ ) { os << _; } );
 		if ( patt ) {
 			apply( os, raw, patt, std::forward<Rest>( rest )... );
@@ -246,6 +242,7 @@ struct FmtImpl
 
 VM_EXPORT
 {
+	// fmt
 	template <typename... Args>
 	string fmt( string const &patt, Args &&... args )
 	{
@@ -253,17 +250,38 @@ VM_EXPORT
 		FmtImpl::apply( os, patt, patt.data(), std::forward<Args>( args )... );
 		return os.str();
 	}
+	// print
+	template <typename... Args>
+	void fprint( ostream & os, string const &patt, Args &&... args )
+	{
+		FmtImpl::apply( os, patt, patt.data(), std::forward<Args>( args )... );
+	}
+	template <typename... Args>
+	void print( string const &patt, Args &&... args )
+	{
+		fprint( cout, patt, std::forward<Args>( args )... );
+	}
+	template <typename... Args>
+	void eprint( string const &patt, Args &&... args )
+	{
+		fprint( cerr, patt, std::forward<Args>( args )... );
+	}
+	// println
+	template <typename... Args>
+	void fprintln( ostream & os, string const &patt, Args &&... args )
+	{
+		fprint( os, patt, std::forward<Args>( args )... );
+		os << endl;
+	}
 	template <typename... Args>
 	void println( string const &patt, Args &&... args )
 	{
-		FmtImpl::apply( cout, patt, patt.data(), std::forward<Args>( args )... );
-		cout << endl;
+		fprintln( cout, patt, std::forward<Args>( args )... );
 	}
 	template <typename... Args>
 	void eprintln( string const &patt, Args &&... args )
 	{
-		FmtImpl::apply( cerr, patt, patt.data(), std::forward<Args>( args )... );
-		cerr << endl;
+		fprintln( cerr, patt, std::forward<Args>( args )... );
 	}
 }
 
