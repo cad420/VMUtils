@@ -8,6 +8,8 @@
 
 VM_BEGIN_MODULE( vm )
 
+using namespace std;
+
 VM_EXPORT
 {
 	template <typename T>
@@ -41,7 +43,7 @@ VM_EXPORT
 		template<typename U>
 		Ref( const Ref<U> &r )
 		{
-		//	static_assert( std::is_base_of<IEverything, T>::value );
+		//	static_assert( is_base_of<IEverything, T>::value );
 			rawPtr = r.rawPtr;
 			if ( rawPtr ) {
 				static_cast<RefEverythingType *>( rawPtr )->AddRef();
@@ -92,13 +94,13 @@ VM_EXPORT
 			return *this;
 		}
 
-		template <typename Derived, typename = typename std::enable_if<std::is_base_of<T, Derived>::value>::type>
+		template <typename Derived, typename = typename enable_if<is_base_of<T, Derived>::value>::type>
 		Ref &operator=( const Ref<Derived> &r )
 		{
 			return *this = static_cast<T *>( r.rawPtr );
 		}
 
-		template <typename Derived, typename = typename std::enable_if<std::is_base_of<T, Derived>::value>::type>
+		template <typename Derived, typename = typename enable_if<is_base_of<T, Derived>::value>::type>
 		Ref &operator=( Ref<Derived> &&r ) noexcept
 		{
 			if ( rawPtr != r.rawPtr ) {
@@ -186,30 +188,29 @@ VM_EXPORT
 	// ==, != for nullptr and Ref<T> with different orders
 
 	template <class T>
-	inline bool operator==( std::nullptr_t A, const Ref<T> &B )
+	inline bool operator==( nullptr_t A, const Ref<T> &B )
 	{
 		return !B;
 	}
 
 	template <class T>
-	bool operator==( const Ref<T> &A, std::nullptr_t B )
+	bool operator==( const Ref<T> &A, nullptr_t B )
 	{
 		return B == A;
 	}
 
 	template <class T>
-	bool operator!=( std::nullptr_t A, const Ref<T> &B )
+	bool operator!=( nullptr_t A, const Ref<T> &B )
 	{
 		return !( A == B );
 	}
 
 	template <class T>
-	bool operator!=( const Ref<T> &A, std::nullptr_t B )
+	bool operator!=( const Ref<T> &A, nullptr_t B )
 	{
 		return !( A == B );
 	}
 }
-
 
 VM_END_MODULE()
 

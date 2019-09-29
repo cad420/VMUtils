@@ -8,6 +8,8 @@
 
 VM_BEGIN_MODULE( vm )
 
+using namespace std;
+
 VM_EXPORT
 {
 	class InterfaceID
@@ -56,6 +58,7 @@ VM_EXPORT
 		  refCounter( refCounter )
 		{
 			//static_assert( std::is_base_of<IEverything, Base>::value );
+		//	static_assert( is_base_of<IEverything, Base>::value );
 		}
 		virtual size_t AddRef() override final
 		{
@@ -63,7 +66,7 @@ VM_EXPORT
 		}
 		virtual size_t Release() override final
 		{
-			return refCounter->ReleaseStrongRef();  // destroy the object in the implementation of a counter
+			return refCounter->ReleaseStrongRef();	// destroy the object in the implementation of a counter
 		}
 		size_t GetCount() const { return refCounter->GetStrongRefCount(); }
 
@@ -95,7 +98,7 @@ VM_EXPORT
 		}
 
 		template <typename Allocator>
-		void *operator new( size_t size, Allocator &alloc )  // placement new
+		void *operator new( size_t size, Allocator &alloc )	 // placement new
 		{
 			return alloc.Alloc( size );
 		}
@@ -115,8 +118,6 @@ VM_EXPORT
 		}
 	};
 }
-
-
 
 VM_END_MODULE()
 
