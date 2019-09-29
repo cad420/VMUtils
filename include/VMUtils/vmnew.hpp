@@ -7,6 +7,8 @@
 
 VM_BEGIN_MODULE( vm )
 
+using namespace std;
+
 VM_EXPORT
 {
 	struct IAllocator
@@ -16,70 +18,72 @@ VM_EXPORT
 		virtual ~IAllocator() = default;
 	};
 
-
 	template <typename ObjectType, typename Allocator>
 	class VMNew;
+}
 
-	template <typename Allocator>
-	class RefCounterImpl : public IRefCnt
+template <typename Allocator>
+class RefCounterImpl : public IRefCnt
+{
+	template <typename ObjectType, typename Allocator>
+	class ObjectWrapper
 	{
-		template <typename ObjectType, typename Allocator>
-		class ObjectWrapper
-		{
-		public:
-			ObjectWrapper( ObjectType *obj, Allocator *allocator ) :
-			  m_pObject( obj ),
-			  m_allocator( allocator ) {}
-			void DestroyObject() const
-			{
-				if ( m_allocator ) {
-					m_pObject->~ObjectType();
-					m_allocator->Free( m_pObject );
-				} else {
-					delete m_pObject;
-				}
-			}
-
-		private:
-			ObjectType *const m_pObject = nullptr;
-			Allocator *const m_allocator = nullptr;
-		};
-
-		template <typename T, typename U>
-		friend class VMNew;
-
 	public:
-		size_t AddStrongRef() override
+		ObjectWrapper( ObjectType *obj, Allocator *allocator ) :
+		  m_pObject( obj ),
+		  m_allocator( allocator ) {}
+		void DestroyObject() const
 		{
-			return ++m_counter;
-		}
-		size_t ReleaseStrongRef() override
-		{
-			const size_t cnt = --m_counter;
-			if ( cnt == 0 ) {
-				reinterpret_cast<ObjectWrapper<IEverything, IAllocator> *>( objectBuffer )->DestroyObject();
-				delete this;  // delete the ref counter object
+			if ( m_allocator ) {
+				m_pObject->~ObjectType();
+				m_allocator->Free( m_pObject );
+			} else {
+				delete m_pObject;
 			}
-			return cnt;
-		}
-		size_t GetStrongRefCount() const override
-		{
-			return m_counter;
 		}
 
 	private:
-		RefCounterImpl() = default;
-		template <typename Allocator, typename ObjectType>
-		void Init( Allocator *allocator, ObjectType *obj )
-		{
-			new ( objectBuffer ) ObjectWrapper<IEverything, IAllocator>( obj, allocator );
-		}
-
-		std::atomic_size_t m_counter = 0;
-		static size_t constexpr bufSize = sizeof( ObjectWrapper<IEverything, IAllocator> );
-		uint8_t objectBuffer[ bufSize ];
+		ObjectType *const m_pObject = nullptr;
+		Allocator *const m_allocator = nullptr;
 	};
 
+	template <typename T, typename U>
+	friend class VMNew;
+
+public:
+	size_t AddStrongRef() override
+	{
+		return ++m_counter;
+	}
+	size_t ReleaseStrongRef() override
+	{
+		const size_t cnt = --m_counter;
+		if ( cnt == 0 ) {
+			reinterpret_cast<ObjectWrapper<IEverything, IAllocator> *>( objectBuffer )->DestroyObject();
+			delete this;  // delete the ref counter object
+		}
+		return cnt;
+	}
+	size_t GetStrongRefCount() const override
+	{
+		return m_counter;
+	}
+
+private:
+	RefCounterImpl() = default;
+	template <typename Allocator, typename ObjectType>
+	void Init( Allocator *allocator, ObjectType *obj )
+	{
+		new ( objectBuffer ) ObjectWrapper<IEverything, IAllocator>( obj, allocator );
+	}
+
+	atomic_size_t m_counter = 0;
+	static size_t constexpr bufSize = sizeof( ObjectWrapper<IEverything, IAllocator> );
+	uint8_t objectBuffer[ bufSize ];
+};
+
+VM_EXPORT
+{
 	template <typename ObjectType, typename Allocator>
 	class VMNew
 	{
@@ -116,18 +120,18 @@ VM_EXPORT
 		}
 	};
 }
+
 VM_END_MODULE()
 
-
-template<typename Allocator,typename Type,typename... Args>
-Type *VM_NEW(Allocator * alloc,Args && ... args)
+template <typename Allocator, typename Type, typename... Args>
+Type *VM_NEW( Allocator *alloc, Args &&... args )
 {
 	using namespace vm;
-	return VMNew<Type, Allocator>( alloc )(std::forward<Args>( args )...);
+	return VMNew<Type, Allocator>( alloc )( std::forward<Args>( args )... );
 }
 
 template <typename Type, typename... Args>
-Type *VM_NEW(  Args &&... args )
+Type *VM_NEW( Args &&... args )
 {
 	using namespace vm;
 	return VMNew<Type, IAllocator>( nullptr )( std::forward<Args>( args )... );
