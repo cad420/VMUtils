@@ -4,7 +4,8 @@ project(vmutils)
 
 option(VMUTILS_BUILD_TESTS "Set to ON to build tests" OFF)
 
-install(DIRECTORY "include" DESTINATION "include/VMutils")
+include(external.cmake)
+include(export.cmake)
 
 if (VMUTILS_BUILD_TESTS)
   find_package(GTest REQUIRED)
@@ -12,9 +13,10 @@ if (VMUTILS_BUILD_TESTS)
 	"tests/*.cc"
 	"tests/*.cpp"
   )
-  add_executable(test_all ${VMUTILS_TEST_SOURCES})
-  target_link_libraries(test_all gtest_main gtest)
-  target_include_directories(test_all PRIVATE "include/VMUtils")
+  add_executable(vmutils_test_all ${VMUTILS_TEST_SOURCES})
+  vm_target_dependency(vmutils_test_all VMUtils PRIVATE)
+  target_link_libraries(vmutils_test_all gtest_main gtest)
   include(GoogleTest)
-  gtest_add_tests(test_all "" AUTO)
+  gtest_add_tests(vmutils_test_all "" AUTO)
 endif()
+
