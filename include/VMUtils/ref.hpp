@@ -14,7 +14,7 @@ VM_EXPORT
 	class Ref
 	{
 		T *rawPtr;
-		using RefEverythingType = RefCountedBase<T>;
+		using RefEverythingType = IEverything;
 		template <typename Other>
 		friend class Ref;
 
@@ -22,14 +22,26 @@ VM_EXPORT
 		Ref( T *p = nullptr ) :
 		  rawPtr( p )
 		{
-			if ( rawPtr != nullptr ) {
+			if ( rawPtr != nullptr ) 
+			{
 				static_cast<RefEverythingType *>( rawPtr )->AddRef();
 			}
 		}
 
 		Ref( const Ref &r )
 		{
-			static_assert( std::is_base_of<IEverything, T>::value );
+		//	static_assert( std::is_base_of<IEverything, T>::value );
+			rawPtr = r.rawPtr;
+			if ( rawPtr ) {
+				static_cast<RefEverythingType *>( rawPtr )->AddRef();
+			}
+		}
+		
+
+		template<typename U>
+		Ref( const Ref<U> &r )
+		{
+		//	static_assert( std::is_base_of<IEverything, T>::value );
 			rawPtr = r.rawPtr;
 			if ( rawPtr ) {
 				static_cast<RefEverythingType *>( rawPtr )->AddRef();

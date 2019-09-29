@@ -55,7 +55,7 @@ VM_EXPORT
 		RefCountedBase( IRefCnt *refCounter ) :
 		  refCounter( refCounter )
 		{
-			static_assert( std::is_base_of<IEverything, Base>::value );
+			//static_assert( std::is_base_of<IEverything, Base>::value );
 		}
 		virtual size_t AddRef() override final
 		{
@@ -66,6 +66,8 @@ VM_EXPORT
 			return refCounter->ReleaseStrongRef();  // destroy the object in the implementation of a counter
 		}
 		size_t GetCount() const { return refCounter->GetStrongRefCount(); }
+
+		
 
 		~RefCountedBase()
 		{

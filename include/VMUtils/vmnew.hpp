@@ -56,9 +56,11 @@ VM_EXPORT
 		size_t ReleaseStrongRef() override
 		{
 			const size_t cnt = --m_counter;
-			if ( cnt == 0 ) {
-				reinterpret_cast<ObjectWrapper<IEverything, IAllocator> *>( objectBuffer )->DestroyObject();
-				delete this;  // delete the ref counter object
+			if ( cnt == 0 ) 
+			{
+				Disposal();
+				//reinterpret_cast<ObjectWrapper<IEverything, IAllocator> *>( objectBuffer )->DestroyObject();
+				//delete this;  // delete the ref counter object
 			}
 			return cnt;
 		}
@@ -73,6 +75,12 @@ VM_EXPORT
 		void Init( Allocator *allocator, ObjectType *obj )
 		{
 			new ( objectBuffer ) ObjectWrapper<IEverything, IAllocator>( obj, allocator );
+		}
+
+		void Disposal()
+		{
+			reinterpret_cast<ObjectWrapper<IEverything, IAllocator> *>( objectBuffer )->DestroyObject();
+			delete this;  // delete the ref counter object
 		}
 
 		std::atomic_size_t m_counter = 0;
@@ -132,5 +140,6 @@ Type *VM_NEW(  Args &&... args )
 	using namespace vm;
 	return VMNew<Type, IAllocator>( nullptr )( std::forward<Args>( args )... );
 }
+
 
 #endif
