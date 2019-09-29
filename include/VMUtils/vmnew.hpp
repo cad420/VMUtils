@@ -118,8 +118,19 @@ VM_EXPORT
 }
 VM_END_MODULE()
 
-#define VM_NEW_ALLOCATOR( AllocPtr, Type ) ::vm::VMNew<Type, typename std::remove_reference<decltype( *AllocPtr )>(AllocPtr)
 
-#define VM_NEW( Type ) ::vm::VMNew<Type, ::vm::IAllocator>(nullptr)
+template<typename Allocator,typename Type,typename... Args>
+Type *VM_NEW(Allocator * alloc,Args && ... args)
+{
+	using namespace vm;
+	return VMNew<Type, Allocator>( alloc )(std::forward<Args>( args )...);
+}
+
+template <typename Type, typename... Args>
+Type *VM_NEW(  Args &&... args )
+{
+	using namespace vm;
+	return VMNew<Type, IAllocator>( nullptr )( std::forward<Args>( args )... );
+}
 
 #endif
