@@ -3,33 +3,28 @@
 #include <string>
 #include <sstream>
 #include <utility>
+#include "modules.hpp"
 
-namespace vm
-{
-namespace __inner__
-{
-namespace __exported__
-{
-}
-using namespace __exported__;
+VM_BEGIN_MODULE( vm )
+
 using namespace std;
 
 struct FmtImpl
 {
 	template <typename T, typename... Rest>
-	static void apply( ostringstream &os, string const &raw,
-					   const char *patt, T &&t, Rest &&... rest )
+	static void apply( ostringstream &os, string const &raw, const char *patt,
+					   T &&t, Rest &&... rest )
 	{
 		patt = move_fn(
-		  patt, raw, [&]( auto _ ) { os << t; }, [&]( auto _ ) { os << _; } );
+		  patt, raw, [&]( auto _ ) { os << std::forward<T>( t ); }, [&]( auto _ ) { os << _; } );
 		if ( patt ) {
 			apply( os, raw, patt, std::forward<Rest>( rest )... );
 		}
 	}
 	static void apply( ostringstream &os, string const &raw, const char *patt )
 	{
-		while ( move_fn(
-		  patt, raw, [&]( auto _ ) {}, [&]( auto _ ) { os << _; } ) )
+		while ( patt = move_fn(
+				  patt, raw, [&]( auto _ ) {}, [&]( auto _ ) { os << _; } ) )
 			;
 	}
 	template <typename F, typename G>
@@ -79,18 +74,13 @@ struct Fmt
 	}
 };
 
-namespace __exported__
+VM_EXPORT
 {
-template <typename... Args>
-string fmt( string const &patt, Args &&... args )
-{
-	return Fmt::apply( patt, std::forward<Args>( args )... );
+	template <typename... Args>
+	string fmt( string const &patt, Args &&... args )
+	{
+		return Fmt::apply( patt, std::forward<Args>( args )... );
+	}
 }
 
-}  // namespace __exported__
-
-}  // namespace __inner__
-
-using namespace __inner__::__exported__;
-
-}  // namespace vm
+VM_END_MODULE()

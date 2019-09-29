@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #define NDEBUG
-#include <log.hpp>
+#include <VMUtils/log.hpp>
 
 using namespace vm;
 using namespace std;

@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <fmt.hpp>
+#include <VMUtils/fmt.hpp>
 
 using namespace vm;
 

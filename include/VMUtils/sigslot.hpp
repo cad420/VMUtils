@@ -1,13 +1,14 @@
 #pragma once
-#ifndef _SIGSLOT_H_
-#define _SIGSLOT_H_
 
 #include <functional>
 #include <memory>
 #include <vector>
+#include "modules.hpp"
 
-namespace vm
-{
+VM_BEGIN_MODULE( vm )
+
+using namespace std;
+
 /**
  * \brief The internal class is used to manage the destruction of the slot.
  *
@@ -15,20 +16,23 @@ namespace vm
  * itself from the callback list of the corresponding signal.
  */
 
-template <typename RetType, typename Type, typename... Args>
-std::function<RetType( Args... )> BindMember( Type *instance, RetType ( Type::*method )( Args... ) )
+VM_EXPORT
 {
-	return [=]( Args... args ) -> RetType {
-		return ( instance->*method )( std::forward<Args>( args )... );
-	};  // why not std::bind() ???
+	template <typename RetType, typename Type, typename... Args>
+	function<RetType( Args... )> BindMember( Type * instance,
+											 RetType( Type::*method )( Args... ) )
+	{
+		return [=]( Args... args ) -> RetType {
+			return ( instance->*method )( std::forward<Args>( args )... );
+		};	// why not std::bind() ???
+	}
 }
 
 template <typename FuncType>
-class _Signal_pImpl;
+struct _Signal_pImpl;
 
-class _Slot_pImpl_Base
+struct _Slot_pImpl_Base
 {
-public:
 	_Slot_pImpl_Base() = default;
 	_Slot_pImpl_Base( const _Slot_pImpl_Base & ) = delete;
 	_Slot_pImpl_Base &operator=( const _Slot_pImpl_Base & ) = delete;
@@ -36,10 +40,10 @@ public:
 };
 
 template <typename FuncType>
-class _Slot_pImpl : public _Slot_pImpl_Base
+struct _Slot_pImpl : _Slot_pImpl_Base
 {
-public:
-	_Slot_pImpl( const std::weak_ptr<_Signal_pImpl<FuncType>> signal, const std::function<FuncType> &func ) :
+	_Slot_pImpl( const weak_ptr<_Signal_pImpl<FuncType>> signal,
+				 const function<FuncType> &func ) :
 	  signal( signal ),
 	  func( func )
 	{
@@ -53,7 +57,7 @@ public:
 				if ( it->expired() || it->lock().get() == this )  // delete the function which is already expired (The owner class has been deleted) or this one
 				{
 					it = real->slots.erase( it );
-					if ( it == real->slots.end() )  // delete all
+					if ( it == real->slots.end() )	// delete all
 					{
 						break;
 					}
@@ -61,77 +65,76 @@ public:
 			}
 		}
 	}
-	std::weak_ptr<_Signal_pImpl<FuncType>> signal;
-	std::function<FuncType> func;
+	weak_ptr<_Signal_pImpl<FuncType>> signal;
+	function<FuncType> func;
 };
 
 /**
  * \brief  The internal class is used for sharing the slots between the assignment of two signals.
  */
 template <typename FuncType>
-class _Signal_pImpl
+struct _Signal_pImpl
 {
-public:
-	std::vector<std::weak_ptr<_Slot_pImpl<FuncType>>> slots;
+	vector<weak_ptr<_Slot_pImpl<FuncType>>> slots;
 };
 
-/**
+VM_EXPORT
+{
+	/**
  * \brief This class is only used as a class member, or it will leading a dangle callback
  */
-class Slot final
-{
-public:
-	Slot() = default;
-	~Slot() = default;
-	template <typename Ty>
-	explicit Slot( Ty impl ) :
-	  impl( impl )
+	struct Slot final
 	{
-	}
-	operator bool() const
-	{
-		return static_cast<bool>( impl );
-	}
+		Slot() = default;
+		~Slot() = default;
+		template <typename Ty>
+		explicit Slot( Ty impl ) :
+		  impl( impl )
+		{
+		}
+		operator bool() const
+		{
+			return static_cast<bool>( impl );
+		}
 
-private:
-	std::shared_ptr<_Slot_pImpl_Base> impl;
-};
+	private:
+		shared_ptr<_Slot_pImpl_Base> impl;
+	};
 
-template <typename FuncType>
-class Signal final
-{
-public:
-	Signal() :
-	  impl( std::make_shared<_Signal_pImpl<FuncType>>() )
+	template <typename FuncType>
+	struct Signal final
 	{
-	}
-	template <typename... Args>
-	void operator()( Args &&... args )
-	{
-		const auto &slots = impl->slots;
-		for ( const auto &each : slots ) {
-			if ( auto slot = each.lock() ) {
-				slot->func( std::forward<Args>( args )... );
+		Signal() :
+		  impl( make_shared<_Signal_pImpl<FuncType>>() )
+		{
+		}
+		template <typename... Args>
+		void operator()( Args &&... args )
+		{
+			const auto &slots = impl->slots;
+			for ( const auto &each : slots ) {
+				if ( auto slot = each.lock() ) {
+					slot->func( std::forward<Args>( args )... );
+				}
 			}
 		}
-	}
 
-	Slot Connect( const std::function<FuncType> &func )
-	{
-		auto slot = std::make_shared<_Slot_pImpl<FuncType>>( impl, func );
-		impl->slots.push_back( slot );
-		return Slot( slot );
-	}
+		Slot Connect( const function<FuncType> &func )
+		{
+			auto slot = make_shared<_Slot_pImpl<FuncType>>( impl, func );
+			impl->slots.push_back( slot );
+			return Slot( slot );
+		}
 
-	template <typename InstanceType, class MemberFuncType>
-	Slot Connect( InstanceType instance, MemberFuncType func )
-	{
-		return Connect( BindMember( instance, func ) );
-	}
+		template <typename InstanceType, class MemberFuncType>
+		Slot Connect( InstanceType instance, MemberFuncType func )
+		{
+			return Connect( BindMember( instance, func ) );
+		}
 
-private:
-	std::shared_ptr<_Signal_pImpl<FuncType>> impl;
-};
-}  // namespace vm
+	private:
+		shared_ptr<_Signal_pImpl<FuncType>> impl;
+	};
+}
 
-#endif
+VM_END_MODULE()

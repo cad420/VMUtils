@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
 #include <vector>
-#include <timer.hpp>
+#include <gtest/gtest.h>
+#include <VMUtils/timer.hpp>
 
 using namespace vm;
 
