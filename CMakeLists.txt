@@ -4,9 +4,15 @@ project(vmutils)
 
 option(VMUTILS_BUILD_TESTS "Set to ON to build tests" OFF)
 
-include(external.cmake)
+# install build scripts
+find_package(Git)
+execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive)
+# install external modules
+include(scripts/external.cmake)
+# export targets
 include(export.cmake)
 
+# build tests
 if (VMUTILS_BUILD_TESTS)
   find_package(GTest REQUIRED)
   file(GLOB_RECURSE VMUTILS_TEST_SOURCES
