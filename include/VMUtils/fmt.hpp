@@ -1,12 +1,14 @@
 #pragma once
 
 #include <string>
+#include <cstdio>
 #include <sstream>
 #include <utility>
 #include <iostream>
 #include <iomanip>
 #include <vector>
 #include <array>
+#include <bitset>
 #include <map>
 #include <unordered_map>
 #include <tuple>
@@ -22,31 +24,132 @@ using namespace std;
 
 VM_EXPORT
 {
+	struct FmtErr : logic_error
+	{
+		FmtErr( string const &str ) :
+		  logic_error( str ) {}
+	};
 	struct FmtSpec
 	{
 		static FmtSpec from_string( string const &spec )
 		{
 			auto _ = FmtSpec{};
 			auto p = spec.data();
-			// while ( *p ) {
+
+			enum class Stage : int
+			{
+				Start = 0,
+				Align = 1,
+				Sign = 2,
+				Sharp = 3,
+				Zero = 4,
+				Width = 5,
+				Prec = 6,
+				Done = 7
+			};
+			Stage stage = Stage::Start;
+			auto earlier_than = [&]( auto p, auto err ) {
+				if ( !( static_cast<int>( stage ) < static_cast<int>( p ) ) ) {
+					throw FmtErr( err + spec );
+				}
+			};
+
+		PARSER:
 			switch ( *p ) {
 			case '<':
 			case '^':
-			case '>': p = get_alignment( p, _ ); break;
-			case '+': spec.sign = true;
+			case '>':
+				earlier_than( Stage::Align, "unexpected align specification: " );
+				p = get_align( p, _ );
+				stage = Stage::Align;
+				goto PARSER;
+			case '+':
+				earlier_than( Stage::Sign, "unexpected '+': " );
+				_.sign = true;
+				++p;
+				stage = Stage::Sign;
+				goto PARSER;
 			case '#':
+				earlier_than( Stage::Sharp, "unexpected '#': " );
+				p = get_alter( p, _, spec );
+				stage = Stage::Sharp;
+				goto PARSER;
 			case '0':
+				earlier_than( Stage::Width, "unexpected '0': " );
+				_.zero = true;
+				++p;
+				stage = Stage::Zero;
+				goto PARSER;
+			default:
+				earlier_than( Stage::Width, "unexpected width specification: " );
+				if ( static_cast<int>( stage ) < static_cast<int>( Stage::Align ) ) {
+					// maybe this is an align
+					switch ( p[ 1 ] ) {
+					case '<':
+					case '>':
+					case '^':
+						p = get_align( p, _ );
+						stage = Stage::Align;
+						goto PARSER;
+					}
+				}
+				p = get_width( p, _, spec );
+				stage = Stage::Width;
+				goto PARSER;
+				break;
 			case '.':
-			default: {
-			} break;
+				earlier_than( Stage::Prec, "unexpected '.': " );
+				p = get_prec( p, _, spec );
+				stage = Stage::Prec;
+				goto PARSER;
 			case 0: break;
 			}
-			// }
 			return _;
 		}
 
 	private:
-		static char const *get_alignment( char const *p, FmtSpec &spec )
+		static char const *get_number( char const *p, unsigned &n, string const &str )
+		{
+			if ( *p >= '1' && *p <= '9' ) {
+				auto q = p;
+				do {
+					++p;
+				} while ( *p >= '0' && *p <= '9' );
+				char patt[ 10 ];
+				sprintf( patt, "%%%uu", p - q );
+				sscanf( q, patt, &n );
+			} else {
+				throw FmtErr( "expected number: " + str );
+			}
+			return p;
+		}
+		static char const *get_prec( char const *p, FmtSpec &spec, string const &str )
+		{
+			unsigned n;
+			p = get_number( p + 1, n, str );
+			spec.precision = n;
+			return p;
+		}
+		static char const *get_width( char const *p, FmtSpec &spec, string const &str )
+		{
+			unsigned n;
+			p = get_number( p, n, str );
+			spec.width = n;
+			return p;
+		}
+		static char const *get_alter( char const *p, FmtSpec &spec, string const &str )
+		{
+			switch ( p[ 1 ] ) {
+			case '?': spec.alter = FmtSpec::Alter::Debug; break;
+			case 'X': spec.alter = FmtSpec::Alter::UpperHex; break;
+			case 'x': spec.alter = FmtSpec::Alter::LowerHex; break;
+			case 'b': spec.alter = FmtSpec::Alter::Bin; break;
+			case 'o': spec.alter = FmtSpec::Alter::Oct; break;
+			default: throw FmtErr( "expected one of [?Xxbo] after '#': " + str );
+			}
+			return p + 2;
+		}
+		static char const *get_align( char const *p, FmtSpec &spec )
 		{
 			spec.align = FmtSpec::Align{};
 			switch ( p[ 1 ] ) {
@@ -88,7 +191,7 @@ VM_EXPORT
 
 	public:
 		Option<Align> align;
-		bool sign;
+		bool sign = false;
 		Option<Alter> alter;
 		bool zero = false;
 		Option<size_t> width;
@@ -112,21 +215,23 @@ struct FmtDefault<T, true, false>  //int
 	static void apply( ostream &os, T const &t, FmtSpec const &spec )
 	{
 		auto old = os.flags();
-		Bomb bprec( [&] { os.flags( old ); } );
+		Bomb _( [&] { os.flags( old ); } );
 		os.flags( std::ios::dec );
-		bool upper = false;
+		if ( spec.sign ) {
+			os.setf( std::ios::showpos );
+		}
 		if ( spec.alter.has_value() ) {
 			switch ( spec.alter.value() ) {
 			case FmtSpec::Alter::Bin:  // bin is not implemented
-				os << setbase( 2 );
-				break;
+				os << "0b" << bitset<64>( t );
+				return;
 			case FmtSpec::Alter::Oct:
-				os << std::oct;
+				os << "0o" << std::oct;
 				break;
 			case FmtSpec::Alter::UpperHex:
-				upper = true;
+				os << std::uppercase;
 			case FmtSpec::Alter::LowerHex:
-				os << std::hex;
+				os << "0x" << std::hex;
 				break;
 			}
 		}
@@ -139,8 +244,13 @@ struct FmtDefault<T, false, true>  //fp
 	static void apply( ostream &os, T const &t, FmtSpec const &spec )
 	{
 		auto prec = os.precision();
-		Bomb bprec( [&] { os.precision( prec ); } );
+		auto old = os.flags();
+		Bomb _( [&] { os.flags( old ); os.precision( prec ); } );
+		if ( spec.sign ) {
+			os.setf( std::ios::showpos );
+		}
 		if ( spec.precision.has_value() ) {
+			os << std::fixed;
 			os.precision( spec.precision.value() );
 		}
 		os << t;
@@ -148,8 +258,32 @@ struct FmtDefault<T, false, true>  //fp
 };
 
 template <typename T>
-struct FmtStrategy : FmtDefault<T, is_integral<T>::value, is_floating_point<T>::value>
+struct FmtStrategy
 {
+	static void apply( ostream &os, T const &t, FmtSpec const &spec )
+	{
+		using Default = FmtDefault<T, is_integral<T>::value, is_floating_point<T>::value>;
+		ostringstream ss;
+		Default::apply( ss, t, spec );
+		auto old = os.flags();
+		auto width = os.width();
+		auto fill = os.fill();
+		Bomb _( [&] { os.flags( old ); os.width(width); os.fill(fill); } );
+		if ( spec.align.has_value() ) {
+			switch ( spec.align.value().type ) {
+			case FmtSpec::Align::Type::Left: os << std::left; break;
+			case FmtSpec::Align::Type::Right: os << std::right; break;
+			default: break;
+			}
+			if ( spec.align.value().fill.has_value() ) {
+				os.fill( spec.align.value().fill.value() );
+			}
+		}
+		if ( spec.width.has_value() ) {
+			os.width( spec.width.value() );
+		}
+		os << ss.str();
+	}
 };
 
 template <typename T>
