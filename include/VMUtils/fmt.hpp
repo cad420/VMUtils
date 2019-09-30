@@ -12,19 +12,19 @@ using namespace std;
 struct FmtImpl
 {
 	template <typename T, typename... Rest>
-	static void apply( ostringstream &os, string const &raw,
-					   const char *patt, T &&t, Rest &&... rest )
+	static void apply( ostringstream &os, string const &raw, const char *patt,
+					   T &&t, Rest &&... rest )
 	{
 		patt = move_fn(
-		  patt, raw, [&]( auto _ ) { os << t; }, [&]( auto _ ) { os << _; } );
+		  patt, raw, [&]( auto _ ) { os << std::forward<T>( t ); }, [&]( auto _ ) { os << _; } );
 		if ( patt ) {
 			apply( os, raw, patt, std::forward<Rest>( rest )... );
 		}
 	}
 	static void apply( ostringstream &os, string const &raw, const char *patt )
 	{
-		while ( move_fn(
-		  patt, raw, [&]( auto _ ) {}, [&]( auto _ ) { os << _; } ) )
+		while ( patt = move_fn(
+				  patt, raw, [&]( auto _ ) {}, [&]( auto _ ) { os << _; } ) )
 			;
 	}
 	template <typename F, typename G>
