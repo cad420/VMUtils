@@ -58,7 +58,7 @@ VM_EXPORT
 		  refCounter( refCounter )
 		{
 			//static_assert( std::is_base_of<IEverything, Base>::value );
-		//	static_assert( is_base_of<IEverything, Base>::value );
+			//static_assert( is_base_of<IEverything, Base>::value );
 		}
 		virtual size_t AddRef() override final
 		{
