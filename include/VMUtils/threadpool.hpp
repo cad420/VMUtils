@@ -6,7 +6,9 @@
 #include <vector>
 #include <mutex>
 #include <future>
+#include <functional>
 #include "modules.hpp"
+#include "traits.hpp"
 
 VM_BEGIN_MODULE( vm )
 
@@ -23,10 +25,10 @@ VM_EXPORT
 		auto AppendTask( F &&f, Args &&... args );
 
 	private:
-		std::vector<std::thread> workers;
-		std::queue<std::function<void()>> tasks;
-		std::mutex mut;
-		std::condition_variable cond;
+		vector<thread> workers;
+		queue<function<void()>> tasks;
+		mutex mut;
+		condition_variable cond;
 		bool stop;
 	};
 
@@ -37,15 +39,15 @@ VM_EXPORT
 		for ( size_t i = 0; i < threads; ++i )
 			workers.emplace_back(
 			  [this] {
-				  for ( ;; ) {
-					  std::function<void()> task;
-
+				  while ( true ) {
+					  function<void()> task;
 					  {
-						  std::unique_lock<std::mutex> lock( this->mut );
-						  this->cond.wait( lock,
-										   [this] { return this->stop || !this->tasks.empty(); } );
-						  if ( this->stop && this->tasks.empty() )
+						  unique_lock<mutex> lock( this->mut );
+						  this->cond.wait(
+							lock, [this] { return this->stop || !this->tasks.empty(); } );
+						  if ( this->stop && this->tasks.empty() ) {
 							  return;
+						  }
 						  task = std::move( this->tasks.front() );
 						  this->tasks.pop();
 					  }
@@ -58,14 +60,16 @@ VM_EXPORT
 	template <class F, class... Args>
 	auto ThreadPool::AppendTask( F && f, Args && ... args )
 	{
-		using return_type = std::invoke_result_t<F, Args...>;
-		auto task = std::make_shared<std::packaged_task<return_type()>>( std::bind( std::forward<F>( f ), std::forward<Args>( args )... ) );
-		std::future<return_type> res = task->get_future();
+		using return_type = typename InvokeResultOf<F, Args...>::type;
+		auto task = make_shared<packaged_task<return_type()>>(
+		  std::bind( std::forward<F>( f ), std::forward<Args>( args )... ) );
+		future<return_type> res = task->get_future();
 		{
-			std::unique_lock<std::mutex> lock( mut );
+			unique_lock<mutex> lock( mut );
 			// don't allow enqueueing after stopping the pool
-			if ( stop )
-				throw std::runtime_error( "enqueue on stopped ThreadPool" );
+			if ( stop ) {
+				throw runtime_error( "enqueue on stopped ThreadPool" );
+			}
 			tasks.emplace( [task]() { ( *task )(); } );
 		}
 		cond.notify_one();
@@ -75,12 +79,13 @@ VM_EXPORT
 	inline ThreadPool::~ThreadPool()
 	{
 		{
-			std::unique_lock<std::mutex> lock( mut );
+			unique_lock<mutex> lock( mut );
 			stop = true;
 		}
 		cond.notify_all();
-		for ( std::thread &worker : workers )
+		for ( thread &worker : workers ) {
 			worker.join();
+		}
 	}
 }
 
