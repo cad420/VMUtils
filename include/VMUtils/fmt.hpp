@@ -206,7 +206,28 @@ struct FmtDefault<T, false, false>
 {
 	static void apply( ostream &os, T const &t, FmtSpec const &spec )
 	{
-		os << t;
+		if ( spec.precision.has_value() ) {
+			ostringstream ss;
+			ss << t;
+			auto prec = spec.precision.value();
+			if ( ss.str().length() <= prec ) {
+				os << ss.str();
+			} else if ( spec.align.has_value() ) {
+				switch ( spec.align.value().type ) {
+				default:
+				case FmtSpec::Align::Type::Left:
+					os << ss.str().substr( 0, prec );
+					break;
+				case FmtSpec::Align::Type::Right:
+					os << ss.str().substr( ss.str().length() - prec, prec );
+					break;
+				}
+			} else {
+				os << ss.str().substr( 0, prec );
+			}
+		} else {
+			os << t;
+		}
 	}
 };
 template <typename T>
@@ -295,7 +316,7 @@ void fmt_impl( ostream &os, T &&t, FmtSpec const &spec = FmtSpec{} )
 }
 
 template <typename T>
-void fmt_array( ostream &os, T const &t, size_t len, string const &spec )
+void fmt_array( ostream &os, T const &t, size_t len, FmtSpec const &spec )
 {
 	os << "[";
 	if ( len ) {
@@ -350,7 +371,7 @@ struct FmtStrategy<const volatile char[ N ]> : FmtStrategy<const volatile char *
 };
 
 template <typename T>
-void fmt_map( ostream &os, T const &t, string const &spec )
+void fmt_map( ostream &os, T const &t, FmtSpec const &spec )
 {
 	os << "{";
 	bool first = true;
@@ -507,6 +528,30 @@ VM_EXPORT
 		ostringstream os;
 		FmtImpl::apply( os, patt, patt.data(), std::forward<Args>( args )... );
 		return os.str();
+	}
+}
+
+struct FmtProxy
+{
+	template <typename... Args>
+	string operator()( Args &&... args ) const
+	{
+		return fmt( str, std::forward<Args>( args )... );
+	}
+	constexpr FmtProxy( const char *str, size_t N ) :
+	  str( str ),
+	  N( N ) {}
+
+private:
+	const char *str;
+	size_t N;
+};
+
+VM_EXPORT
+{
+	constexpr FmtProxy operator""_fmt( const char str[], size_t N )
+	{
+		return FmtProxy( str, N );
 	}
 	// print
 	template <typename... Args>
