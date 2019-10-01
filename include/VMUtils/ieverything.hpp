@@ -1,6 +1,5 @@
+#pragma once
 
-#ifndef _IEVERYTHING_H_
-#define _IEVERYTHING_H_
 #include <cassert>
 #include <type_traits>
 #include <atomic>
@@ -118,5 +117,3 @@ VM_EXPORT
 }
 
 VM_END_MODULE()
-
-#endif

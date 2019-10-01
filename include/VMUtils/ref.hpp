@@ -1,6 +1,4 @@
-
-#ifndef _REF_H_
-#define _REF_H_
+#pragma once
 
 #include <atomic>
 #include "ieverything.hpp"
@@ -211,5 +209,3 @@ VM_EXPORT
 }
 
 VM_END_MODULE()
-
-#endif
