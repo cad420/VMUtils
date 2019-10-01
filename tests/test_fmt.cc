@@ -27,3 +27,9 @@ TEST( test_fmt, test_fmt )
 		EXPECT_EQ( os.str(), "1 a, bqw1\n" );
 	}
 }
+
+TEST( test_fmt, test_fmt_with_syntax )
+{
+	auto x = fmt( "{.2f}", 2.34567 );
+	EXPECT_EQ( x, "2.34" );
+}
