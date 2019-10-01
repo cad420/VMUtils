@@ -16,7 +16,15 @@ VM_EXPORT
 		  fn( std::move( fn ) )
 		{
 		}
-		~Bomb() { fn(); }
+		~Bomb()
+		{
+			fn();
+		}
+
+		void leak()
+		{
+			fn = [] {};
+		}
 
 	private:
 		function<void()> fn;

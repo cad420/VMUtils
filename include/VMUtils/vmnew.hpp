@@ -1,8 +1,8 @@
-#ifndef _VMNEW_H_
-#define _VMNEW_H_
+#pragma once
 
 #include "ieverything.hpp"
 #include "modules.hpp"
+#include "bomb.hpp"
 
 VM_BEGIN_MODULE( vm )
 
@@ -24,17 +24,16 @@ VM_EXPORT
 template <typename Allocator>
 class RefCounterImpl : public IRefCnt
 {
-	template <typename ObjectType, typename Allocator>
 	class ObjectWrapper
 	{
 	public:
-		ObjectWrapper( ObjectType *obj, Allocator *allocator ) :
+		ObjectWrapper( IEverything *obj, IAllocator *allocator ) :
 		  m_pObject( obj ),
 		  m_allocator( allocator ) {}
 		void DestroyObject() const
 		{
 			if ( m_allocator ) {
-				m_pObject->~ObjectType();
+				m_pObject->~IEverything();
 				m_allocator->Free( m_pObject );
 			} else {
 				delete m_pObject;
@@ -42,8 +41,8 @@ class RefCounterImpl : public IRefCnt
 		}
 
 	private:
-		ObjectType *const m_pObject = nullptr;
-		Allocator *const m_allocator = nullptr;
+		IEverything *const m_pObject = nullptr;
+		IAllocator *const m_allocator = nullptr;
 	};
 
 	template <typename T, typename U>
@@ -58,7 +57,7 @@ public:
 	{
 		const size_t cnt = --m_counter;
 		if ( cnt == 0 ) {
-			reinterpret_cast<ObjectWrapper<IEverything, IAllocator> *>( objectBuffer )->DestroyObject();
+			reinterpret_cast<ObjectWrapper *>( objectBuffer )->DestroyObject();
 			delete this;  // delete the ref counter object
 		}
 		return cnt;
@@ -70,14 +69,14 @@ public:
 
 private:
 	RefCounterImpl() = default;
-	template <typename Allocator, typename ObjectType>
+	template <typename ObjectType>
 	void Init( Allocator *allocator, ObjectType *obj )
 	{
-		new ( objectBuffer ) ObjectWrapper<IEverything, IAllocator>( obj, allocator );
+		new ( objectBuffer ) ObjectWrapper( obj, allocator );
 	}
 
-	atomic_size_t m_counter = 0;
-	static size_t constexpr bufSize = sizeof( ObjectWrapper<IEverything, IAllocator> );
+	atomic_size_t m_counter = { 0 };
+	static size_t constexpr bufSize = sizeof( ObjectWrapper );
 	uint8_t objectBuffer[ bufSize ];
 };
 
@@ -100,21 +99,18 @@ VM_EXPORT
 		template <typename... Args>
 		ObjectType *operator()( Args &&... args )
 		{
-			auto refCnt = new RefCounterImpl<Allocator>();
+			auto refcnt = new RefCounterImpl<Allocator>;
+			Bomb _( [&] { delete refcnt; } );
 
 			ObjectType *obj = nullptr;
-			try {
-				if ( m_allocator )
-					obj = new ( *m_allocator ) ObjectType( refCnt, std::forward<Args>( args )... );
-				else
-					obj = new ObjectType( refCnt, std::forward<Args>( args )... );
+			if ( m_allocator )
+				obj = new ( *m_allocator ) ObjectType( refcnt, std::forward<Args>( args )... );
+			else
+				obj = new ObjectType( refcnt, std::forward<Args>( args )... );
 
-				refCnt->Init( m_allocator, obj );
+			refcnt->Init( m_allocator, obj );
 
-			} catch ( ... ) {
-				delete refCnt;
-			}
-
+			_.leak();
 			return obj;
 		}
 	};
@@ -135,5 +131,3 @@ Type *VM_NEW( Args &&... args )
 	using namespace vm;
 	return VMNew<Type, IAllocator>( nullptr )( std::forward<Args>( args )... );
 }
-
-#endif

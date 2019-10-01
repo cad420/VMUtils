@@ -22,7 +22,7 @@ VM_EXPORT
 		using Pointer = T const *;
 
 		NonNull( Pointer _ ) :
-		_( _ ) {}
+		  _( _ ) {}
 		NonNull( nullptr_t ) = delete;
 
 		Reference operator*() const { return *_; }
@@ -46,13 +46,19 @@ VM_EXPORT
 		using Pointer = T *;
 
 		explicit Box( Pointer _ ) :
-		_( _ ) {}
+		  _( _ ) {}
 		Box( nullptr_t ) = delete;
 
 		Reference operator*() const { return *_; }
 		Pointer operator->() const { return &*_; }
 
 		Pointer get() const { return _.get(); }
+
+		template <typename... Args>
+		static Box create( Args &&... args )
+		{
+			return Box( new T( std::forward<Args>( args )... ) );
+		}
 
 	private:
 		Box() = default;
@@ -70,7 +76,7 @@ VM_EXPORT
 		using Pointer = T *;
 
 		explicit Arc( Pointer _ ) :
-		_( _ ) {}
+		  _( _ ) {}
 		Arc( nullptr_t ) = delete;
 
 		Reference operator*() const { return *_; }
@@ -84,6 +90,12 @@ VM_EXPORT
 			return Arc<U>( _.get() );
 		}
 
+		template <typename... Args>
+		static Arc create( Args &&... args )
+		{
+			return Arc( new T( std::forward<Args>( args )... ) );
+		}
+
 	private:
 		Arc() = default;
 
@@ -92,7 +104,6 @@ VM_EXPORT
 		template <typename X, typename>
 		friend struct Option;
 	};
-
 }
 
 VM_END_MODULE()

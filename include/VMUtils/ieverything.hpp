@@ -70,8 +70,6 @@ VM_EXPORT
 		}
 		size_t GetCount() const { return refCounter->GetStrongRefCount(); }
 
-		
-
 		~RefCountedBase()
 		{
 			assert( GetCount() == 0 );

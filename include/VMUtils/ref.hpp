@@ -13,7 +13,7 @@ using namespace std;
 VM_EXPORT
 {
 	template <typename T>
-	class Ref
+	class Ref final
 	{
 		T *rawPtr;
 		using RefEverythingType = IEverything;
@@ -24,26 +24,24 @@ VM_EXPORT
 		Ref( T *p = nullptr ) :
 		  rawPtr( p )
 		{
-			if ( rawPtr != nullptr ) 
-			{
+			if ( rawPtr != nullptr ) {
 				static_cast<RefEverythingType *>( rawPtr )->AddRef();
 			}
 		}
 
 		Ref( const Ref &r )
 		{
-		//	static_assert( std::is_base_of<IEverything, T>::value );
+			//	static_assert( std::is_base_of<IEverything, T>::value );
 			rawPtr = r.rawPtr;
 			if ( rawPtr ) {
 				static_cast<RefEverythingType *>( rawPtr )->AddRef();
 			}
 		}
-		
 
-		template<typename U>
+		template <typename U>
 		Ref( const Ref<U> &r )
 		{
-		//	static_assert( is_base_of<IEverything, T>::value );
+			//	static_assert( is_base_of<IEverything, T>::value );
 			rawPtr = r.rawPtr;
 			if ( rawPtr ) {
 				static_cast<RefEverythingType *>( rawPtr )->AddRef();
@@ -56,7 +54,7 @@ VM_EXPORT
 			return Ref<U>( dynamic_cast<U *>( Get() ) );
 		}
 
-		Ref( const Ref &&r ) noexcept
+		Ref( Ref &&r ) noexcept
 		{
 			rawPtr = r.Take();
 		}
