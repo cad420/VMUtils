@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <utility>
 #include "modules.hpp"
 
@@ -32,13 +33,39 @@ VM_EXPORT
 	struct NoHeap
 	{
 	private:
-		static void *operator new( size_t );
-		static void *operator new[]( size_t );
+		void *operator new( size_t );
+		void *operator new[]( size_t );
 	};
 
 	struct Dynamic
 	{
 		virtual ~Dynamic() = default;
+	};
+
+	template <typename ClassName>
+	class CountedBase
+	{
+	public:
+		static uint64_t ObjectCount() { return objectNum; }
+		virtual ~CountedBase()
+		{
+			--objectNum;
+		}
+
+	protected:
+		CountedBase() { init(); }
+		CountedBase( const CountedBase &obj ) { init(); }
+		CountedBase &operator=( const CountedBase &obj )
+		{
+			init();
+			return *this;
+		}
+		CountedBase( CountedBase && ) = default;
+		CountedBase &operator=( CountedBase && ) = default;
+
+	private:
+		static std::atomic_uint64_t objectNum;
+		static void init() { ++objectNum; }
 	};
 }
 
