@@ -60,7 +60,7 @@ VM_EXPORT
 	template <class F, class... Args>
 	auto ThreadPool::AppendTask( F && f, Args && ... args )
 	{
-		using return_type = typename InvokeResultOf<F, Args...>::type;
+		using return_type = typename InvokeResultOf<F>::type;
 		auto task = make_shared<packaged_task<return_type()>>(
 		  std::bind( std::forward<F>( f ), std::forward<Args>( args )... ) );
 		future<return_type> res = task->get_future();
