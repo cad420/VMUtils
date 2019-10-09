@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <tuple>
 #include <utility>
+#include <mutex>
 #include <type_traits>
 #include "bomb.hpp"
 #include "modules.hpp"
@@ -547,12 +548,20 @@ private:
 	size_t N;
 };
 
+inline std::recursive_mutex &cout_lock()
+{
+	static std::recursive_mutex _;
+	return _;
+}
+
+inline std::recursive_mutex &cerr_lock()
+{
+	static std::recursive_mutex _;
+	return _;
+}
+
 VM_EXPORT
 {
-	constexpr FmtProxy operator""_fmt( const char str[], size_t N )
-	{
-		return FmtProxy( str, N );
-	}
 	// print
 	template <typename... Args>
 	void fprint( ostream & os, string const &patt, Args &&... args )
@@ -562,11 +571,13 @@ VM_EXPORT
 	template <typename... Args>
 	void print( string const &patt, Args &&... args )
 	{
+		std::unique_lock<std::recursive_mutex> _( cout_lock() );
 		fprint( cout, patt, std::forward<Args>( args )... );
 	}
 	template <typename... Args>
 	void eprint( string const &patt, Args &&... args )
 	{
+		std::unique_lock<std::recursive_mutex> _( cerr_lock() );
 		fprint( cerr, patt, std::forward<Args>( args )... );
 	}
 	// println
@@ -579,12 +590,19 @@ VM_EXPORT
 	template <typename... Args>
 	void println( string const &patt, Args &&... args )
 	{
+		std::unique_lock<std::recursive_mutex> _( cout_lock() );
 		fprintln( cout, patt, std::forward<Args>( args )... );
 	}
 	template <typename... Args>
 	void eprintln( string const &patt, Args &&... args )
 	{
+		std::unique_lock<std::recursive_mutex> _( cerr_lock() );
 		fprintln( cerr, patt, std::forward<Args>( args )... );
+	}
+
+	constexpr FmtProxy operator""_fmt( const char str[], size_t N )
+	{
+		return FmtProxy( str, N );
 	}
 }
 
