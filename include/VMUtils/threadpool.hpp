@@ -3,6 +3,7 @@
 #include <thread>
 #include <condition_variable>
 #include <queue>
+#include <atomic>
 #include <vector>
 #include <mutex>
 #include <future>
@@ -23,17 +24,22 @@ VM_EXPORT
 
 		template <typename F, typename... Args>
 		auto AppendTask( F &&f, Args &&... args );
+		void Wait();
 
 	private:
 		vector<thread> workers;
 		queue<function<void()>> tasks;
 		mutex mut;
+		atomic<size_t> idle;
 		condition_variable cond;
+		size_t nthreads;
 		bool stop;
 	};
 
 	// the constructor just launches some amount of workers
 	inline ThreadPool::ThreadPool( size_t threads ) :
+	  idle( threads ),
+	  nthreads( threads ),
 	  stop( false )
 	{
 		for ( size_t i = 0; i < threads; ++i )
@@ -48,10 +54,12 @@ VM_EXPORT
 						  if ( this->stop && this->tasks.empty() ) {
 							  return;
 						  }
+						  idle--;
 						  task = std::move( this->tasks.front() );
 						  this->tasks.pop();
 					  }
 					  task();
+					  idle++;
 				  }
 			  } );
 	}
@@ -75,6 +83,12 @@ VM_EXPORT
 		cond.notify_one();
 		return res;
 	}
+
+	inline void ThreadPool::Wait()
+	{
+		while ( this->idle.load() != nthreads ) {}
+	}
+
 	// the destructor joins all threads
 	inline ThreadPool::~ThreadPool()
 	{
