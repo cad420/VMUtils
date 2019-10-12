@@ -117,6 +117,14 @@ VM_EXPORT
 		T *Get() { return rawPtr; }
 
 		const T *Get() const { return rawPtr; }
+		
+		template<typename U>
+		U * Get(){
+			return static_cast<U*>(rawPtr);
+		}
+
+		template<typename U>
+		const U* Get()const{return rawPtr;}
 
 		void Reset()
 		{
