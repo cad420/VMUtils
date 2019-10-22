@@ -17,7 +17,7 @@ VM_EXPORT
 		void with( T &_, F fn )
 		{
 			auto old = this->_;
-			Bomb x( [this, old] { this->_ = old; } );
+			auto x = make_bomb( [this, old] { this->_ = old; } );
 			this->_ = &_;
 			fn();
 		}
@@ -26,7 +26,7 @@ VM_EXPORT
 		void with( U &&_, F fn )
 		{
 			auto old = this->_;
-			Bomb x( [this, old] { this->_ = old; } );
+			auto x = make_bomb( [this, old] { this->_ = old; } );
 			T e( std::forward<U>( _ ) );
 			this->_ = &e;
 			fn();

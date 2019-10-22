@@ -8,27 +8,29 @@ VM_BEGIN_MODULE( vm )
 
 using namespace std;
 
+template <typename F>
+struct Bomb final : NoCopy, NoHeap
+{
+	Bomb( F &&fn ) :
+	  fn( std::move( fn ) )
+	{
+	}
+	Bomb( Bomb && ) = default;
+	Bomb &operator=( Bomb && ) = default;
+
+	~Bomb() { fn(); }
+
+private:
+	F fn;
+};
+
 VM_EXPORT
 {
-	struct Bomb final : NoCopy, NoMove, NoHeap
+	template <typename F>
+	auto make_bomb( F && fn )
 	{
-		Bomb( function<void()> &&fn ) :
-		  fn( std::move( fn ) )
-		{
-		}
-		~Bomb()
-		{
-			fn();
-		}
-
-		void leak()
-		{
-			fn = [] {};
-		}
-
-	private:
-		function<void()> fn;
-	};
+		return Bomb<F>( std::forward<F>( fn ) );
+	}
 }
 
 VM_END_MODULE()

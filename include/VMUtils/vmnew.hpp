@@ -99,18 +99,17 @@ VM_EXPORT
 		template <typename... Args>
 		ObjectType *operator()( Args &&... args )
 		{
-			auto refcnt = new RefCounterImpl<Allocator>;
-			Bomb _( [&] { delete refcnt; } );
+			auto refcnt = unique_ptr<RefCounterImpl<Allocator>>( new RefCounterImpl<Allocator> );
 
 			ObjectType *obj = nullptr;
 			if ( m_allocator )
-				obj = new ( *m_allocator ) ObjectType( refcnt, std::forward<Args>( args )... );
+				obj = new ( *m_allocator ) ObjectType( refcnt.get(), std::forward<Args>( args )... );
 			else
-				obj = new ObjectType( refcnt, std::forward<Args>( args )... );
+				obj = new ObjectType( refcnt.get(), std::forward<Args>( args )... );
 
 			refcnt->Init( m_allocator, obj );
 
-			_.leak();
+			refcnt.release();
 			return obj;
 		}
 	};

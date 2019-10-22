@@ -237,7 +237,7 @@ struct FmtDefault<T, true, false>  //int
 	static void apply( ostream &os, T const &t, FmtSpec const &spec )
 	{
 		auto old = os.flags();
-		Bomb _( [&] { os.flags( old ); } );
+		auto _ = make_bomb( [&] { os.flags( old ); } );
 		os.flags( std::ios::dec );
 		if ( spec.sign ) {
 			os.setf( std::ios::showpos );
@@ -267,7 +267,7 @@ struct FmtDefault<T, false, true>  //fp
 	{
 		auto prec = os.precision();
 		auto old = os.flags();
-		Bomb _( [&] { os.flags( old ); os.precision( prec ); } );
+		auto _ = make_bomb( [&] { os.flags( old ); os.precision( prec ); } );
 		if ( spec.sign ) {
 			os.setf( std::ios::showpos );
 		}
@@ -290,7 +290,7 @@ struct FmtStrategy
 		auto old = os.flags();
 		auto width = os.width();
 		auto fill = os.fill();
-		Bomb _( [&] { os.flags( old ); os.width(width); os.fill(fill); } );
+		auto _ = make_bomb( [&] { os.flags( old ); os.width(width); os.fill(fill); } );
 		if ( spec.align.has_value() ) {
 			switch ( spec.align.value().type ) {
 			case FmtSpec::Align::Type::Left: os << std::left; break;
