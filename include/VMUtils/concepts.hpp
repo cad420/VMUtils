@@ -33,8 +33,8 @@ VM_EXPORT
 	struct NoHeap
 	{
 	private:
-		void *operator new( size_t );
-		void *operator new[]( size_t );
+		static void *operator new( size_t );
+		static void *operator new[]( size_t );
 	};
 
 	struct Dynamic
@@ -64,7 +64,7 @@ VM_EXPORT
 		CountedBase &operator=( CountedBase && ) = default;
 
 	private:
-		static std::atomic_uint64_t objectNum;
+		static std::atomic<std::uint64_t> objectNum;
 		static void init() { ++objectNum; }
 	};
 }
