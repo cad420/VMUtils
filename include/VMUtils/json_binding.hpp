@@ -93,7 +93,7 @@ protected:
 			get_components().emplace_back(
 			  [=]( nlohmann::json &j, const T &t ) { j[ name ] = t.*offset; },
 			  [=]( const nlohmann::json &j, T &t ) {
-				  if ( j.find( name ) != j.end() ) {
+				  if ( j.count( name ) ) {
 					  t.*offset = j.at( name ).template get<U>();
 				  } else {
 					  t.*offset = default_value;
@@ -111,7 +111,7 @@ protected:
 			get_components().emplace_back(
 			  [=]( nlohmann::json &j, const T &t ) { j[ name ] = t.*offset; },
 			  [=]( const nlohmann::json &j, T &t ) {
-				  if ( j.find( name ) != j.end() ) {
+				  if ( j.count( name ) ) {
 					  t.*offset = j.at( name ).template get<U>();
 				  } else {
 					  throw std::domain_error( "No such key named \"" + name + "\"." );
@@ -134,7 +134,7 @@ protected:
 				  j[ name ] = conv.second( t.*offset );
 			  },
 			  [=]( const nlohmann::json &j, T &t ) {
-				  if ( j.find( name ) != j.end() ) {
+				  if ( j.count( name ) ) {
 					  t.*offset = conv.first( j.at( name ).template get<X>() );
 				  } else {
 					  t.*offset = conv.first( default_value );
@@ -156,7 +156,7 @@ protected:
 				  j[ name ] = conv.second( t.*offset );
 			  },
 			  [=]( const nlohmann::json &j, T &t ) {
-				  if ( j.find( name ) != j.end() ) {
+				  if ( j.count( name ) ) {
 					  t.*offset = conv.first( j.at( name ).template get<X>() );
 				  } else {
 					  throw std::domain_error( "No such key named \"" + name + "\"." );
@@ -307,7 +307,7 @@ VM_EXPORT
 		do {
 			next = key.find_first_of( '.', start );
 			auto sub = key.substr( start, next );
-			if ( j->find( sub ) != j->end() ) {
+			if ( j->count( sub ) ) {
 				j = &j->at( sub );
 			} else {
 				return val;

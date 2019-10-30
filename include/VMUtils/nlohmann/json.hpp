@@ -3413,7 +3413,7 @@ class basic_json
             , "incompatible pointer type");
 
         // delegate the call to get_impl_ptr<>() const
-        return get_impl_ptr(static_cast<const PointerType>(nullptr));
+        return get_impl_ptr(static_cast<PointerType>(nullptr));
     }
 
     /*!
@@ -3895,7 +3895,7 @@ class basic_json
     template<typename T, std::size_t n>
     reference operator[](T * (&key)[n])
     {
-        return operator[](static_cast<const T>(key));
+        return operator[](static_cast<T>(key));
     }
 
     /*!
@@ -3930,7 +3930,7 @@ class basic_json
     template<typename T, std::size_t n>
     const_reference operator[](T * (&key)[n]) const
     {
-        return operator[](static_cast<const T>(key));
+        return operator[](static_cast<T>(key));
     }
 
     /*!
@@ -10989,7 +10989,7 @@ basic_json_parser_66:
             {
                 // invariant: if we parsed a '-', the absolute value is between
                 // 0 (we allow -0) and max == -INT64_MIN
-                assert(value >= 0);
+                // assert(value >= 0);
                 assert(value <= max);
 
                 if (value == max)
