@@ -46,10 +46,9 @@ inline void from_json( const nlohmann::json &j, T &e )
 	e.deserialize( j );
 }
 
-#define VM_JSON_FIELD( T, name, ... ) \
-	T name = init_metadata<T>(        \
-	  #name, &type::name,             \
-	  ##__VA_ARGS__ )  // if no init value the comma will be removed.
+#define VM_JSON_FIELD( T, name, ... )                  \
+	VM_DEFINE_ATTRIBUTE( T, name ) = init_metadata<T>( \
+	  #name, &type::name, ##__VA_ARGS__ )  // if no init value the comma will be removed.
 
 template <typename T, typename U = AsObject>
 struct Serializable;

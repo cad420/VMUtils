@@ -81,12 +81,13 @@ TEST( test_json_binding, test_json_default_value )
 	}
 }
 
+struct B : vm::json::Serializable<B>
+{
+	VM_JSON_FIELD( A, a );
+};
+
 TEST( test_json_binding, test_json_nested )
 {
-	struct B : vm::json::Serializable<B>
-	{
-		VM_JSON_FIELD( A, a );
-	};
 	{
 		std::istringstream is( R"(
             {
@@ -105,16 +106,17 @@ TEST( test_json_binding, test_json_nested )
 	}
 }
 
+struct C : vm::json::Serializable<C, vm::json::AsArray>
+{
+	VM_JSON_FIELD( int, a, 1 );
+	VM_JSON_FIELD( string, b );
+	VM_JSON_FIELD( vector<string>, c, {} );
+	using MapTy = map<string, int>;
+	VM_JSON_FIELD( MapTy, d, {} );
+};
+
 TEST( test_json_binding, test_json_as_array )
 {
-	struct B : vm::json::Serializable<B, vm::json::AsArray>
-	{
-		VM_JSON_FIELD( int, a, 1 );
-		VM_JSON_FIELD( string, b );
-		VM_JSON_FIELD( vector<string>, c, {} );
-		using MapTy = map<string, int>;
-		VM_JSON_FIELD( MapTy, d, {} );
-	};
 	{
 		std::istringstream is( R"(
             [
@@ -127,12 +129,12 @@ TEST( test_json_binding, test_json_as_array )
                 }
             ]
         )" );
-		B b;
-		is >> b;
-		ASSERT_EQ( b.a, 10 );
-		ASSERT_EQ( b.b, "asd" );
-		ASSERT_EQ( b.c, ( vector<string>{ "a", "b" } ) );
-		ASSERT_EQ( b.d, ( B::MapTy{ { "a", 1 }, { "b", 2 } } ) );
+		C c;
+		is >> c;
+		ASSERT_EQ( c.a, 10 );
+		ASSERT_EQ( c.b, "asd" );
+		ASSERT_EQ( c.c, ( vector<string>{ "a", "b" } ) );
+		ASSERT_EQ( c.d, ( C::MapTy{ { "a", 1 }, { "b", 2 } } ) );
 	}
 	{
 		std::istringstream is( R"(
@@ -141,19 +143,19 @@ TEST( test_json_binding, test_json_as_array )
                 "asd"
             ]
         )" );
-		B b;
-		is >> b;
-		ASSERT_EQ( b.a, 10 );
-		ASSERT_EQ( b.b, "asd" );
-		ASSERT_EQ( b.c, ( vector<string>{} ) );
-		ASSERT_EQ( b.d, ( B::MapTy{} ) );
+		C c;
+		is >> c;
+		ASSERT_EQ( c.a, 10 );
+		ASSERT_EQ( c.b, "asd" );
+		ASSERT_EQ( c.c, ( vector<string>{} ) );
+		ASSERT_EQ( c.d, ( C::MapTy{} ) );
 	}
 	{
 		std::istringstream is( R"(
             [
             ]
         )" );
-		B b;
-		ASSERT_THROW( is >> b, std::domain_error );
+		C c;
+		ASSERT_THROW( is >> c, std::domain_error );
 	}
 }
