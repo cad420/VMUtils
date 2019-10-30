@@ -8,9 +8,9 @@ using namespace std;
 
 struct A : vm::json::Serializable<A>
 {
-	VM_JSON_FIELD( int, a, 1 );
+	VM_JSON_FIELD( int, a ) = 1;
 	VM_JSON_FIELD( string, b );
-	VM_JSON_FIELD( vector<double>, c, {} );
+	VM_JSON_FIELD( vector<double>, c ) = {};
 };
 
 TEST( test_json_binding, test_json_simple )
@@ -128,11 +128,11 @@ TEST( test_json_binding, test_json_nested )
 
 struct C : vm::json::Serializable<C, vm::json::AsArray>
 {
-	VM_JSON_FIELD( int, a, 1 );
+	VM_JSON_FIELD( int, a ) = 1;
 	VM_JSON_FIELD( string, b );
-	VM_JSON_FIELD( vector<string>, c, {} );
+	VM_JSON_FIELD( vector<string>, c ) = {};
 	using MapTy = map<string, int>;
-	VM_JSON_FIELD( MapTy, d, {} );
+	VM_JSON_FIELD( MapTy, d ) = {};
 };
 
 TEST( test_json_binding, test_json_as_array )

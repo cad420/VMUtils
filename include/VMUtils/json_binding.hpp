@@ -10,6 +10,7 @@
 #include "nlohmann/json.hpp"
 #include "modules.hpp"
 #include "attributes.hpp"
+#include "fmt.hpp"
 
 VM_BEGIN_MODULE( vm )
 
@@ -48,9 +49,77 @@ inline void from_json( const nlohmann::json &j, T &e )
 	e.deserialize( j );
 }
 
-#define VM_JSON_FIELD( T, name, ... )                  \
-	VM_DEFINE_ATTRIBUTE( T, name ) = init_metadata<T>( \
-	  #name, &type::name, ##__VA_ARGS__ )  // if no init value the comma will be removed.
+#define VM_JSON_FIELD( T, name ) \
+	VM_DEFINE_ATTRIBUTE( T, name ) = init_metadata<T>( #name, &type::name )
+
+template <typename T, typename U>
+struct AsObjectMetadata
+{
+	constexpr AsObjectMetadata( const char *name, U T::*offset ) :
+	  name( name ),
+	  offset( offset )
+	{
+	}
+
+	operator U() const
+	{
+		if ( T::get_state() ==
+			 1 )  // if this object is the first instance of this class
+		{
+			T::get_components().emplace_back(
+			  [=, name = this->name, offset = this->offset]( nlohmann::json &j, const T &t ) { j[ name ] = t.*offset; },
+			  [=, name = this->name, offset = this->offset]( const nlohmann::json &j, T &t ) {
+				  if ( j.count( name ) ) {
+					  t.*offset = j.at( name ).template get<U>();
+				  } else {
+					  throw std::domain_error( vm::fmt( "No such key named {}", name ) );
+				  }
+			  } );
+		}
+		return U();
+	}
+	const U &operator=( const U &e ) const
+	{
+		if ( T::get_state() ==
+			 1 )  // if this object is the first instance of this class
+		{
+			T::get_components().emplace_back(
+			  [=, name = this->name, offset = this->offset]( nlohmann::json &j, const T &t ) { j[ name ] = t.*offset; },
+			  [=, name = this->name, offset = this->offset]( const nlohmann::json &j, T &t ) {
+				  if ( j.count( name ) ) {
+					  t.*offset = j.at( name ).template get<U>();
+				  } else {
+					  t.*offset = e;
+				  }
+			  } );
+		}
+		return e;
+	}
+	template <typename X, typename = typename std::enable_if<
+							std::is_constructible<U, X>::value>::type>
+	U operator=( X &&e ) const
+	{
+		U u( std::forward<X>( e ) );
+		if ( T::get_state() ==
+			 1 )  // if this object is the first instance of this class
+		{
+			T::get_components().emplace_back(
+			  [=, name = this->name, offset = this->offset]( nlohmann::json &j, const T &t ) { j[ name ] = t.*offset; },
+			  [=, name = this->name, offset = this->offset]( const nlohmann::json &j, T &t ) {
+				  if ( j.count( name ) ) {
+					  t.*offset = j.at( name ).template get<U>();
+				  } else {
+					  t.*offset = u;
+				  }
+			  } );
+		}
+		return u;
+	}
+
+private:
+	const char *const name;
+	U T::*const offset;
+};
 
 template <typename T, typename U = AsObject>
 struct Serializable;
@@ -84,86 +153,9 @@ struct Serializable<T, AsObject> : __flag::IsSerializable
 
 protected:
 	template <typename U>
-	static U init_metadata( const std::string &name, U T::*offset,
-							const U &default_value )
+	constexpr static AsObjectMetadata<T, U> init_metadata( const char *name, U T::*offset )
 	{
-		if ( get_state() ==
-			 1 )  // if this object is the first instance of this class
-		{
-			get_components().emplace_back(
-			  [=]( nlohmann::json &j, const T &t ) { j[ name ] = t.*offset; },
-			  [=]( const nlohmann::json &j, T &t ) {
-				  if ( j.count( name ) ) {
-					  t.*offset = j.at( name ).template get<U>();
-				  } else {
-					  t.*offset = default_value;
-				  }
-			  } );
-		}
-		return default_value;
-	}
-	template <typename U>
-	static U init_metadata( const std::string &name, U T::*offset )
-	{
-		if ( get_state() ==
-			 1 )  // if this object is the first instance of this class
-		{
-			get_components().emplace_back(
-			  [=]( nlohmann::json &j, const T &t ) { j[ name ] = t.*offset; },
-			  [=]( const nlohmann::json &j, T &t ) {
-				  if ( j.count( name ) ) {
-					  t.*offset = j.at( name ).template get<U>();
-				  } else {
-					  throw std::domain_error( "No such key named \"" + name + "\"." );
-				  }
-			  } );
-		}
-		return U();
-	}
-	template <typename U, typename X>
-	static U init_metadata( const std::string &name, U T::*offset,
-							const X &default_value,
-							const std::pair<std::function<U( const X & )>,
-											std::function<X( const U & )>> &conv )
-	{
-		if ( get_state() ==
-			 1 )  // if this object is the first instance of this class
-		{
-			get_components().emplace_back(
-			  [=]( nlohmann::json &j, const T &t ) {
-				  j[ name ] = conv.second( t.*offset );
-			  },
-			  [=]( const nlohmann::json &j, T &t ) {
-				  if ( j.count( name ) ) {
-					  t.*offset = conv.first( j.at( name ).template get<X>() );
-				  } else {
-					  t.*offset = conv.first( default_value );
-				  }
-			  } );
-		}
-		return conv.first( default_value );
-	}
-	template <typename U, typename X>
-	static U init_metadata( const std::string &name, U T::*offset,
-							const std::pair<std::function<U( const X & )>,
-											std::function<X( const U & )>> &conv )
-	{
-		if ( get_state() ==
-			 1 )  // if this object is the first instance of this class
-		{
-			get_components().emplace_back(
-			  [=]( nlohmann::json &j, const T &t ) {
-				  j[ name ] = conv.second( t.*offset );
-			  },
-			  [=]( const nlohmann::json &j, T &t ) {
-				  if ( j.count( name ) ) {
-					  t.*offset = conv.first( j.at( name ).template get<X>() );
-				  } else {
-					  throw std::domain_error( "No such key named \"" + name + "\"." );
-				  }
-			  } );
-		}
-		return U();
+		return AsObjectMetadata<T, U>( name, offset );
 	}
 
 private:
@@ -183,6 +175,83 @@ private:
 		static int state = 0;
 		return state;
 	}
+	template <typename X, typename Y>
+	friend struct AsObjectMetadata;
+};
+
+template <typename T, typename U>
+struct AsArrayMetadata
+{
+	constexpr AsArrayMetadata( const char *name, U T::*offset ) :
+	  name( name ),
+	  offset( offset )
+	{
+	}
+
+	operator U() const
+	{
+		if ( T::get_state() ==
+			 1 )  // if this object is the first instance of this class
+		{
+			auto index = T::get_index();
+			T::get_components().emplace_back(
+			  [=, name = this->name, offset = this->offset]( nlohmann::json &j, const T &t ) { j[ index ] = t.*offset; },
+			  [=, name = this->name, offset = this->offset]( const nlohmann::json &j, T &t ) {
+				  if ( j.size() > index ) {
+					  t.*offset = j.at( index ).template get<U>();
+				  } else {
+					  throw std::domain_error( vm::fmt( "No such key named {}", name ) );
+				  }
+			  } );
+			T::get_index()++;
+		}
+		return U();
+	}
+	const U &operator=( const U &e ) const
+	{
+		if ( T::get_state() ==
+			 1 )  // if this object is the first instance of this class
+		{
+			auto index = T::get_index();
+			T::get_components().emplace_back(
+			  [=, name = this->name, offset = this->offset]( nlohmann::json &j, const T &t ) { j[ index ] = t.*offset; },
+			  [=, name = this->name, offset = this->offset]( const nlohmann::json &j, T &t ) {
+				  if ( j.size() > index ) {
+					  t.*offset = j.at( index ).template get<U>();
+				  } else {
+					  t.*offset = e;
+				  }
+			  } );
+			T::get_index()++;
+		}
+		return e;
+	}
+	template <typename X, typename = typename std::enable_if<
+							std::is_constructible<U, X>::value>::type>
+	U operator=( X &&e ) const
+	{
+		U u( std::forward<X>( e ) );
+		if ( T::get_state() ==
+			 1 )  // if this object is the first instance of this class
+		{
+			auto index = T::get_index();
+			T::get_components().emplace_back(
+			  [=, name = this->name, offset = this->offset]( nlohmann::json &j, const T &t ) { j[ index ] = t.*offset; },
+			  [=, name = this->name, offset = this->offset]( const nlohmann::json &j, T &t ) {
+				  if ( j.size() > index ) {
+					  t.*offset = j.at( index ).template get<U>();
+				  } else {
+					  t.*offset = u;
+				  }
+			  } );
+			T::get_index()++;
+		}
+		return u;
+	}
+
+private:
+	const char *const name;
+	U T::*const offset;
 };
 
 template <typename T>
@@ -214,45 +283,9 @@ struct Serializable<T, AsArray> : __flag::IsSerializable
 
 protected:
 	template <typename U>
-	static U init_metadata( const std::string &name, U T::*offset,
-							const U &default_value )
+	constexpr static AsArrayMetadata<T, U> init_metadata( const char *name, U T::*offset )
 	{
-		if ( get_state() ==
-			 1 )  // if this object is the first instance of this class
-		{
-			auto index = get_index();
-			get_components().emplace_back(
-			  [=]( nlohmann::json &j, const T &t ) { j[ index ] = t.*offset; },
-			  [=]( const nlohmann::json &j, T &t ) {
-				  if ( j.size() > index ) {
-					  t.*offset = j.at( index ).template get<U>();
-				  } else {
-					  t.*offset = default_value;
-				  }
-			  } );
-			get_index()++;
-		}
-		return default_value;
-	}
-	template <typename U>
-	static U init_metadata( const std::string &name, U T::*offset )
-	{
-		if ( get_state() ==
-			 1 )  // if this object is the first instance of this class
-		{
-			auto index = get_index();
-			get_components().emplace_back(
-			  [=]( nlohmann::json &j, const T &t ) { j[ index ] = t.*offset; },
-			  [=]( const nlohmann::json &j, T &t ) {
-				  if ( j.size() > index ) {
-					  t.*offset = j.at( index ).template get<U>();
-				  } else {
-					  throw std::domain_error( "No such key named \"" + name + "\"." );
-				  }
-			  } );
-			get_index()++;
-		}
-		return U();
+		return AsArrayMetadata<T, U>( name, offset );
 	}
 
 private:
@@ -277,6 +310,8 @@ private:
 		static int index = 0;
 		return index;
 	}
+	template <typename X, typename Y>
+	friend struct AsArrayMetadata;
 };
 
 template <typename T, typename = typename std::enable_if<std::is_base_of<
@@ -347,9 +382,9 @@ VM_EXPORT
 			return os.str();
 		}
 
-		VM_JSON_FIELD( bool, pretty, false );
-		VM_JSON_FIELD( unsigned, indent, 4 );
-		VM_JSON_FIELD( unsigned, current_indent, 0 );
+		VM_JSON_FIELD( bool, pretty ) = false;
+		VM_JSON_FIELD( unsigned, indent ) = 4;
+		VM_JSON_FIELD( unsigned, current_indent ) = 0;
 	};
 
 	}  // namespace json
