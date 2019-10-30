@@ -28,6 +28,26 @@ TEST( test_json_binding, test_json_simple )
 		ASSERT_EQ( a.a, 10 );
 		ASSERT_EQ( a.b, "asd" );
 		ASSERT_EQ( a.c, ( vector<double>{ 1., 2., 3. } ) );
+
+		vm::json::Writer writer;
+		ASSERT_EQ( writer.write( a ), R"({"a":10,"b":"asd","c":[1,2,3]})" );
+		writer
+		  .set_pretty( true )
+		  .set_indent( 2 )
+		  .set_current_indent( 0 );
+		ASSERT_EQ( writer.write( a ),
+				   // clang-format off
+R"({
+  "a": 10,
+  "b": "asd",
+  "c": [
+    1,
+    2,
+    3
+  ]
+})"
+				   // clang-format on
+		);
 	}
 }
 

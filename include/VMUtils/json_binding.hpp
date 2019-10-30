@@ -1,9 +1,10 @@
 #pragma once
 
+#include <type_traits>
 #include <functional>
 #include <iosfwd>
 #include <string>
-#include <type_traits>
+#include <sstream>
 #include <vector>
 // #include <vec/vsel.hpp>
 #include "nlohmann/json.hpp"
@@ -12,6 +13,7 @@
 
 VM_BEGIN_MODULE( vm )
 
+using namespace std;
 using namespace nlohmann;
 
 namespace jsel
@@ -328,6 +330,27 @@ VM_EXPORT
 		} while ( next != key.npos );
 		return *j;
 	}
+
+	struct Writer final : Serializable<Writer>
+	{
+		template <typename T>
+		void write( std::ostream &os, T const &t )
+		{
+			nlohmann::json j = t;
+			j.dump( os, pretty, indent, current_indent );
+		}
+		template <typename T>
+		string write( T const &t )
+		{
+			std::ostringstream os;
+			write( os, t );
+			return os.str();
+		}
+
+		VM_JSON_FIELD( bool, pretty, false );
+		VM_JSON_FIELD( unsigned, indent, 4 );
+		VM_JSON_FIELD( unsigned, current_indent, 0 );
+	};
 
 	}  // namespace json
 }
