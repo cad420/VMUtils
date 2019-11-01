@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <utility>
+#include <cstdint>
 #include "modules.hpp"
 
 VM_BEGIN_MODULE( vm )
@@ -64,7 +65,7 @@ VM_EXPORT
 		CountedBase &operator=( CountedBase && ) = default;
 
 	private:
-		static std::atomic<std::uint64_t> objectNum;
+		static std::atomic<uint64_t> objectNum;
 		static void init() { ++objectNum; }
 	};
 }
