@@ -1,4 +1,7 @@
 # VMUtils
+
+[![CodeFactor](https://www.codefactor.io/repository/github/cad420/vmutils/badge)](https://www.codefactor.io/repository/github/cad420/vmutils)
+
 An self-contained library which provides some assistant functions such as timer, thread pool and signal-slot.
 
 * ### Build
