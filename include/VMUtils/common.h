@@ -27,7 +27,6 @@ static inline typename Wrapper::pointer GetImplPtrHelper( const Wrapper &p )
 	inline Class *q_func() { return static_cast<Class *>( q_ptr ); }                   \
 	inline const Class *q_func() const { return static_cast<const Class *>( q_ptr ); } \
 	friend class Class;
-    //Class * const q_ptr = nullptr;
 
 #define VM_IMPL( Class ) Class##__pImpl *const _ = d_func();
 #define VM_API ( Class ) Class * const _ = q_func();
