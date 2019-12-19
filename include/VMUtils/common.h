@@ -16,7 +16,7 @@ static inline typename Wrapper::pointer GetImplPtrHelper( const Wrapper &p )
 	inline Class##__pImpl *d_func() { return reinterpret_cast<Class##__pImpl *>( GetImplPtrHelper( d_ptr.get() ) ); }                   \
 	inline const Class##__pImpl *d_func() const { return reinterpret_cast<const Class##__pImpl *>( GetImplPtrHelper( d_ptr.get() ) ); } \
 	friend class Class##__pImpl; \
-	std::unique_ptr<Class##__pImpl> d_ptr;
+	Class##__pImpl * const d_ptr = nullptr;
 
 #define VM_DECL_IMPL_D( Dptr, Class )                                                                                    \
 	inline Class##__pImpl *d_func() { return reinterpret_cast<Class##__pImpl *>( GetImplPtrHelper( Dptr ) ); }                   \
