@@ -32,6 +32,7 @@ VM_EXPORT
 		mutex mut;
 		atomic<size_t> idle;
 		condition_variable cond;
+		condition_variable waitCond;
 		size_t nthreads;
 		bool stop;
 	};
@@ -60,6 +61,12 @@ VM_EXPORT
 					  }
 					  task();
 					  idle++;
+					  {
+						  lock_guard<mutex> lk( this->mut );
+						  if ( idle.load() == this->nthreads && this->tasks.empty() ) {
+							  waitCond.notify_all();
+						  }
+					  }
 				  }
 			  } );
 	}
@@ -86,7 +93,7 @@ VM_EXPORT
 
 	inline void ThreadPool::Wait()
 	{
-		while ( this->idle.load() != nthreads ) {}
+		waitCond.wait( unique_lock<mutex>( mutex() ), [this]() { return this->idle.load() == nthreads && tasks.empty(); } );
 	}
 
 	// the destructor joins all threads

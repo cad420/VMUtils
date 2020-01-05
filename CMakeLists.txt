@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 set(CMAKE_CXX_STANDARD 14)
 project(vmutils)
 
-option(VMUTILS_BUILD_TESTS "Set to ON to build tests" OFF)
+option(VMUTILS_BUILD_TESTS "Set to ON to build tests" ON)
 
 # install build scripts
 find_package(Git)
