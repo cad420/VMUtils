@@ -37,7 +37,7 @@ VM_EXPORT
 		{
 			unique_lock<mutex> lk( mut );
 			notEmpty.wait( lk, [this]() { return !queue.empty(); } );
-			E e = queue.front();
+			E e = std::move(queue.front());
 			queue.pop_front();
 
 			notFull.notify_one();
