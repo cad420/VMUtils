@@ -1,6 +1,6 @@
 
 
-#include <VMUtils/concurrent.hpp>
+#include <VMUtils/concurrency.hpp>
 #include <VMUtils/threadpool.hpp>
 #include <gtest/gtest.h>
 
