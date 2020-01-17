@@ -14,7 +14,7 @@ TEST( test_concurrent, SyncQueue )
 	ThreadPool pubThread( 1 );
 	ThreadPool subThread( 1 );
 
-	auto syncQueue = std::make_shared<BlockingQueue<int>>( 1 );
+	auto syncQueue = std::make_unique<BlockingQueue<int>>( 1 );
 
 	const auto cases = 10000;
 
@@ -24,7 +24,7 @@ TEST( test_concurrent, SyncQueue )
 	}
 
 	for ( int i = 0; i < cases; i++ ) {
-		pubThread.AppendTask( [ syncQueue, result]( int idx ) {
+		pubThread.AppendTask( [syncQueue, result]( int idx ) {
 			syncQueue->Put( idx );
 			( *result )[ idx ].first += 1;
 		},
@@ -36,8 +36,8 @@ TEST( test_concurrent, SyncQueue )
 		} );
 	}
 
-	pubThread.Wait();
-	subThread.Wait();
+	//pubThread.Wait();
+	//subThread.Wait();
 
 	bool ok = true;
 	
