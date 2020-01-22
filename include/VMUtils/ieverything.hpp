@@ -11,6 +11,9 @@ using namespace std;
 
 VM_EXPORT
 {
+	template <typename T, typename U>
+	class VMNew;
+
 	class InterfaceID
 	{
 	public:
@@ -65,7 +68,7 @@ VM_EXPORT
 		}
 		virtual size_t Release() override final
 		{
-			return refCounter->ReleaseStrongRef();	// destroy the object in the implementation of a counter
+			return refCounter->ReleaseStrongRef();  // destroy the object in the implementation of a counter
 		}
 		size_t GetCount() const { return refCounter->GetStrongRefCount(); }
 
@@ -95,7 +98,7 @@ VM_EXPORT
 		}
 
 		template <typename Allocator>
-		void *operator new( size_t size, Allocator &alloc )	 // placement new
+		void *operator new( size_t size, Allocator &alloc )  // placement new
 		{
 			return alloc.Alloc( size );
 		}
