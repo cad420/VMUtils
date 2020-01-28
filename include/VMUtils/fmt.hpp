@@ -245,15 +245,18 @@ struct FmtDefault<T, true, false>  //int
 		if ( spec.alter.has_value() ) {
 			switch ( spec.alter.value() ) {
 			case FmtSpec::Alter::Bin:  // bin is not implemented
-				os << "0b" << bitset<64>( t );
+				// os << "0b" << bitset<64>( t );
+				os << bitset<64>( t );
 				return;
 			case FmtSpec::Alter::Oct:
-				os << "0o" << std::oct;
+				// os << "0o" << std::oct;
+				os << std::oct;
 				break;
 			case FmtSpec::Alter::UpperHex:
 				os << std::uppercase;
 			case FmtSpec::Alter::LowerHex:
-				os << "0x" << std::hex;
+				// os << "0x" << std::hex;
+				os << std::hex;
 				break;
 			}
 		}
