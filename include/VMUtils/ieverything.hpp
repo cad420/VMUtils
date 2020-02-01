@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <cstring>
 #include <type_traits>
 #include <atomic>
 #include "modules.hpp"
@@ -9,19 +10,29 @@ VM_BEGIN_MODULE( vm )
 
 using namespace std;
 
+
+
 VM_EXPORT
 {
 	template <typename T, typename U>
 	class VMNew;
 
+	class IEverything;
+
 	class InterfaceID
 	{
 	public:
+		uint32_t Part0;		 // 4 bytes
+		uint16_t Part1;		 // 2 bytes
+		uint16_t Part2;		 // 2 bytes
+		uint8_t Part3[ 8 ];	 // 8 bytes
 		bool operator==( const InterfaceID &id ) const
 		{
-			return true;
+			return Part0 == id.Part0 && Part1 == id.Part1 && Part2 == id.Part2 && std::memcmp( Part3, id.Part3, sizeof( Part3 ) ) == 0;
 		}
 	};
+	
+	static constexpr InterfaceID Everything_IID = { 0, 0, 0, { 0, 0, 0, 0, 0, 0, 0, 0 } };
 
 	class IRefCnt
 	{
@@ -29,6 +40,10 @@ VM_EXPORT
 		virtual size_t AddStrongRef() = 0;
 		virtual size_t ReleaseStrongRef() = 0;
 		virtual size_t GetStrongRefCount() const = 0;
+		virtual size_t AddWeakRef() = 0;
+		virtual size_t ReleaseWeakRef() = 0;
+		virtual size_t GetWeakRefCount() const = 0;
+		virtual void GetObject( IEverything **object ) = 0;
 		virtual ~IRefCnt() = default;
 	};
 
@@ -43,6 +58,11 @@ VM_EXPORT
 		virtual void QueryInterface( const InterfaceID &iid, IEverything **interface ) = 0;
 		virtual size_t AddRef() = 0;
 		virtual size_t Release() = 0;
+		virtual IRefCnt *GetRefCounter()const = 0;
+		
+		//virtual size_t AddWeakRef() = 0;
+		//virtual size_t ReleaseWeakRef() = 0;
+
 		virtual ~IEverything() = default;
 
 	protected:
@@ -68,9 +88,10 @@ VM_EXPORT
 		}
 		virtual size_t Release() override final
 		{
-			return refCounter->ReleaseStrongRef();  // destroy the object in the implementation of a counter
+			return refCounter->ReleaseStrongRef();	// destroy the object in the implementation of a counter
 		}
-		size_t GetCount() const { return refCounter->GetStrongRefCount(); }
+		size_t GetCount() const override final{ return refCounter->GetStrongRefCount(); }
+
 
 		~RefCountedBase()
 		{
@@ -98,7 +119,7 @@ VM_EXPORT
 		}
 
 		template <typename Allocator>
-		void *operator new( size_t size, Allocator &alloc )  // placement new
+		void *operator new( size_t size, Allocator &alloc )	 // placement new
 		{
 			return alloc.Alloc( size );
 		}
@@ -112,9 +133,16 @@ VM_EXPORT
 	public:
 		EverythingBase( IRefCnt *cnt ) :
 		  RefCountedBase<Interface>( cnt ) {}
-		void QueryInterface( const InterfaceID &iid, IEverything **interface )
+		void QueryInterface( const InterfaceID &iid, IEverything **interface )override
 		{
+			if ( interface == nullptr )
+				return;
+
 			*interface = nullptr;
+			if ( iid == Everything_IID ) {
+				*interface = this;
+				( *interface )->AddRef();
+			}
 		}
 	};
 }

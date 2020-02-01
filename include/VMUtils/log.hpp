@@ -6,9 +6,11 @@
 
 #ifdef NDEBUG
 #define Assert( expr ) ( (void)( 0 ) )
+
 #else
 #define Assert( expr ) (((expr) == true)?((void)(0))(assert(expr)))
 #endif
+
 
 VM_BEGIN_MODULE( vm )
 

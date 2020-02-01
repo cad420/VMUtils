@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include "ieverything.hpp"
 #include "modules.hpp"
 #include "bomb.hpp"
@@ -25,6 +26,13 @@ VM_EXPORT
 template <typename Allocator>
 class RefCounterImpl : public IRefCnt
 {
+	enum class ObjectState
+	{
+		UNINITIALIZED,
+		ALIVE,
+		DESTROYED
+	};
+
 	class ObjectWrapper
 	{
 	public:
@@ -41,8 +49,13 @@ class RefCounterImpl : public IRefCnt
 			}
 		}
 
+		void QueryInterface( const InterfaceID &iid, IEverything **interface )
+		{
+			m_pObject->QueryInterface( iid, interface );
+		}
+
 	private:
-		IEverything *const m_pObject = nullptr;
+		IEverything *const m_pObject = nullptr;  // this should be a specified type by using template
 		IAllocator *const m_allocator = nullptr;
 	};
 
@@ -50,22 +63,120 @@ class RefCounterImpl : public IRefCnt
 	friend class VMNew;
 
 public:
-	size_t AddStrongRef() override
+	size_t AddStrongRef() override final
 	{
 		return ++m_counter;
 	}
-	size_t ReleaseStrongRef() override
+	/**
+	 * \brief 
+	 */
+	size_t ReleaseStrongRef() override final
 	{
 		const size_t cnt = --m_counter;
+
 		if ( cnt == 0 ) {
-			reinterpret_cast<ObjectWrapper *>( objectBuffer )->DestroyObject();
-			delete this;  // delete the ref counter object
+			// destroy the object is a non-trivial routine. Because we must consider the manner of
+			// GetObject() in multi-thread scenario
+
+			assert( ObjectState::ALIVE == objectState );
+
+			const auto ref = m_counter.load();	// ref == 0 or ref == 1
+
+			// case 1: ref == 0 indicates that there are no other threads using the object
+
+			// case 2: ref == 1 indicates that GetObject() is being invoked in another thread.
+			// because when GetObject() is called, the strong reference counter is increased and decreased.
+
+			assert( ref == 0 || ref == 1 );
+
+			using namespace std;
+			unique_lock<mutex> lck( mtx );
+
+			// when enter the critical section , the strong reference counter must be zero
+			assert( m_counter == 0 && ObjectState::ALIVE == objectState );
+
+			if ( m_counter == 0 && ObjectState::ALIVE == objectState ) {
+				uint8_t bufCopy[ bufSize ];
+				memcpy( bufCopy, objectBuffer, bufSize );
+
+				auto *p = reinterpret_cast<ObjectWrapper *>( bufCopy );
+
+				objectState = ObjectState::DESTROYED;
+
+				const auto deleteSelf = m_weakCounter == 0;
+				lck.unlock();
+
+				p->DestroyObject();
+
+				if ( deleteSelf )
+					delete this;
+			}
+			//reinterpret_cast<ObjectWrapper *>( objectBuffer )->DestroyObject();
+
+			//if (m_weakCounter == 0)
+			//	delete this;  // delete the ref counter object
 		}
 		return cnt;
 	}
-	size_t GetStrongRefCount() const override
+	size_t GetStrongRefCount() const override final
 	{
 		return m_counter;
+	}
+
+	size_t AddWeakRef() override final
+	{
+		return ++m_weakCounter;
+	}
+
+	size_t ReleaseWeakRef() override final
+	{
+		// Generally, When strong reference counter and weak reference
+		// counter both are 0,the counter object is need to be destroyed.
+
+		using namespace std;
+
+		unique_lock<mutex> lck( mtx );
+
+		const auto weakCnt = --m_weakCounter;
+
+		if ( weakCnt == 0 && objectState == ObjectState::DESTROYED ) {
+			assert( m_counter.load() == 0 );
+			lck.unlock();
+			delete this;
+		}
+
+		return weakCnt;
+	}
+
+	/**
+	 * \brief This function is used to increase the reference count
+	 * \note Because the process of destroying is not atomic. so anther
+	 * locker should be used here
+	 */
+	void GetObject( IEverything **object ) override final
+	{
+		if ( objectState != ObjectState::ALIVE )
+			return;
+
+		using namespace std;
+		unique_lock<mutex> lck( mtx );
+
+		const auto strongCnt = ++m_counter;
+		
+		// Increasing the strong reference counter indicates that the object buffer is being used by this thread
+		// so that not to be destroyed by ReleaseStrongRef() in another thread. see the ReleaseStrongRef() for details.
+		if ( objectState == ObjectState::ALIVE && strongCnt > 1 ) 
+		{
+			auto p = reinterpret_cast<ObjectWrapper *>( objectBuffer );
+			p->QueryInterface( Everything_IID, object );
+			
+		}
+		--m_counter;
+	}
+
+	size_t GetWeakRefCount() const override final
+	{
+		return m_weakCounter;
 	}
 
 private:
@@ -73,12 +184,21 @@ private:
 	template <typename ObjectType>
 	void Init( Allocator *allocator, ObjectType *obj )
 	{
+		assert( objectState == ObjectState::UNINITIALIZED );
 		new ( objectBuffer ) ObjectWrapper( obj, allocator );
+		objectState = ObjectState::ALIVE;
+	}
+
+	void TryDestoryObject()
+	{
 	}
 
 	atomic_size_t m_counter = { 0 };
+	atomic_size_t m_weakCounter = { 0 };
 	static size_t constexpr bufSize = sizeof( ObjectWrapper );
 	uint8_t objectBuffer[ bufSize ];
+	ObjectState objectState = ObjectState::UNINITIALIZED;
+	std::mutex mtx;
 };
 
 VM_EXPORT

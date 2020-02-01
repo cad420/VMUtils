@@ -18,6 +18,53 @@ VM_EXPORT
 		template <typename Other>
 		friend class Ref;
 
+		class WeakRefRAII
+		{
+			T *rawPtr;
+			Ref *ref;
+
+			WeakRefRAII( const WeakRefRAII & ) = delete;
+			WeakRefRAII &operator=( const WeakRefRAII & ) = delete;
+			WeakRefRAII &operator=( WeakRefRAII && ) = delete;
+
+		public:
+			WeakRefRAII( Ref &ptr ) noexcept :
+			  rawPtr( static_cast<T *>( ptr ) ), ref(std::addressof( ptr ))
+			{
+			}
+
+			WeakRefRAII( WeakRefRAII &&other ) noexcept:
+			  rawPtr( other.rawPtr ), ref(other.ref)
+			{
+				other.rawPtr = nullptr;
+				other.ref = nullptr;
+			}
+			~WeakRefRAII()
+			{
+				if ( ref && static_cast<T *>( ref) != rawPtr ) {
+					ref->Attach( rawPtr );
+				}
+			}
+
+			T*& operator*() noexcept { return rawPtr; }
+			const T* operator*() const noexcept { return rawPtr; }
+
+			operator T **() noexcept { return &rawPtr; }
+			operator const T **() const noexcept { return &rawPtr; }
+			
+		};
+
+	public:
+		WeakRefRAII operator&()
+		{
+			return WeakRefRAII( *this );
+		}
+
+		const WeakRefRAII operator&() const
+		{
+			return WeakRefRAII( *this );
+		}
+
 	public:
 		Ref( T *p = nullptr ) :
 		  rawPtr( p )
@@ -117,14 +164,18 @@ VM_EXPORT
 		T *Get() { return rawPtr; }
 
 		const T *Get() const { return rawPtr; }
-		
-		template<typename U>
-		U * Get(){
-			return static_cast<U*>(rawPtr);
+
+		template <typename U>
+		U *Get()
+		{
+			return static_cast<U *>( rawPtr );
 		}
 
-		template<typename U>
-		const U* Get()const{return rawPtr;}
+		template <typename U>
+		const U *Get() const
+		{
+			return rawPtr;
+		}
 
 		void Reset()
 		{
