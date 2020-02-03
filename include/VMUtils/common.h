@@ -28,3 +28,4 @@ static inline typename Wrapper::pointer GetImplPtrHelper( const Wrapper &p )
 
 #define VM_IMPL( Class ) Class##__pImpl *const _ = d_func();
 #define VM_API ( Class ) Class *const _ = q_func();
+

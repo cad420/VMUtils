@@ -55,7 +55,7 @@ class RefCounterImpl : public IRefCnt
 		}
 
 	private:
-		IEverything *const m_pObject = nullptr;  // this should be a specified type by using template
+		IEverything *const m_pObject = nullptr;	 // this should be a specified type by using template
 		IAllocator *const m_allocator = nullptr;
 	};
 
@@ -73,10 +73,10 @@ public:
 	size_t ReleaseStrongRef() override final
 	{
 		const size_t cnt = --m_counter;
-
 		if ( cnt == 0 ) {
 			// destroy the object is a non-trivial routine. Because we must consider the manner of
 			// GetObject() in multi-thread scenario
+			//
 
 			assert( ObjectState::ALIVE == objectState );
 
@@ -93,8 +93,7 @@ public:
 			unique_lock<mutex> lck( mtx );
 
 			// when enter the critical section , the strong reference counter must be zero
-			assert( m_counter == 0 && ObjectState::ALIVE == objectState );
-
+			//assert( m_counter == 0 && ObjectState::ALIVE == objectState );
 			if ( m_counter == 0 && ObjectState::ALIVE == objectState ) {
 				uint8_t bufCopy[ bufSize ];
 				memcpy( bufCopy, objectBuffer, bufSize );
@@ -162,14 +161,12 @@ public:
 		unique_lock<mutex> lck( mtx );
 
 		const auto strongCnt = ++m_counter;
-		
+
 		// Increasing the strong reference counter indicates that the object buffer is being used by this thread
 		// so that not to be destroyed by ReleaseStrongRef() in another thread. see the ReleaseStrongRef() for details.
-		if ( objectState == ObjectState::ALIVE && strongCnt > 1 ) 
-		{
+		if ( objectState == ObjectState::ALIVE && strongCnt > 1 ) {
 			auto p = reinterpret_cast<ObjectWrapper *>( objectBuffer );
 			p->QueryInterface( Everything_IID, object );
-			
 		}
 		--m_counter;
 	}
@@ -223,10 +220,13 @@ VM_EXPORT
 			auto refcnt = unique_ptr<RefCounterImpl<Allocator>>( new RefCounterImpl<Allocator> );
 
 			ObjectType *obj = nullptr;
-			if ( m_allocator )
+			if ( m_allocator ) {
 				obj = new ( *m_allocator ) ObjectType( refcnt.get(), std::forward<Args>( args )... );
-			else
+			}
+			else {
 				obj = new ObjectType( refcnt.get(), std::forward<Args>( args )... );
+
+			}
 
 			refcnt->Init( m_allocator, obj );
 

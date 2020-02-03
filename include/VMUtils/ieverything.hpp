@@ -6,6 +6,7 @@
 #include <atomic>
 #include "modules.hpp"
 
+
 VM_BEGIN_MODULE( vm )
 
 using namespace std;
@@ -90,7 +91,7 @@ VM_EXPORT
 		{
 			return refCounter->ReleaseStrongRef();	// destroy the object in the implementation of a counter
 		}
-		size_t GetCount() const override final{ return refCounter->GetStrongRefCount(); }
+		size_t GetCount() const{ return refCounter->GetStrongRefCount(); }
 
 
 		~RefCountedBase()
@@ -98,12 +99,13 @@ VM_EXPORT
 			assert( GetCount() == 0 );
 		}
 
-		IRefCnt *GetRefCounter() const { return refCounter; }
+		IRefCnt *GetRefCounter() const override{ return refCounter; }
 
 	protected:
 		void operator delete( void *ptr )
 		{
 			delete[] reinterpret_cast<uint8_t *>( ptr );
+			//::operator delete( ptr );
 		}
 
 		template <typename Allocator>
@@ -115,7 +117,9 @@ VM_EXPORT
 	private:
 		void *operator new( size_t size )
 		{
-			return new uint8_t[ size ];
+			void *t = new uint8_t[ size ];
+			return t;
+			//return ::operator new( size );
 		}
 
 		template <typename Allocator>

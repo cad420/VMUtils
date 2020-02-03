@@ -29,7 +29,7 @@ VM_EXPORT
 
 		public:
 			WeakRefRAII( Ref &ptr ) noexcept :
-			  rawPtr( static_cast<T *>( ptr ) ), ref(std::addressof( ptr ))
+			  rawPtr( static_cast<T*>( ptr ) ), ref(std::addressof( ptr ))
 			{
 			}
 
@@ -41,7 +41,7 @@ VM_EXPORT
 			}
 			~WeakRefRAII()
 			{
-				if ( ref && static_cast<T *>( ref) != rawPtr ) {
+				if ( ref && static_cast<T *>(*ref) != rawPtr ) {
 					ref->Attach( rawPtr );
 				}
 			}
@@ -191,7 +191,8 @@ VM_EXPORT
 		}
 		void Release()
 		{
-			if ( rawPtr ) {
+			if ( rawPtr ) 
+			{
 				static_cast<RefEverythingType *>( rawPtr )->Release();
 			}
 		}

@@ -102,7 +102,7 @@ VM_EXPORT
 
 		bool Expired() const
 		{
-			return object != nullptr && cnt != nullptr && cnt->GetStrongRefCount() > 0;
+			return !(object != nullptr && cnt != nullptr && cnt->GetStrongRefCount() > 0);
 		}
 
 		Ref<T> Lock()
