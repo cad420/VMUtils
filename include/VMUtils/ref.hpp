@@ -29,29 +29,28 @@ VM_EXPORT
 
 		public:
 			WeakRefRAII( Ref &ptr ) noexcept :
-			  rawPtr( static_cast<T*>( ptr ) ), ref(std::addressof( ptr ))
+			  rawPtr( static_cast<T *>( ptr ) ), ref( std::addressof( ptr ) )
 			{
 			}
 
-			WeakRefRAII( WeakRefRAII &&other ) noexcept:
-			  rawPtr( other.rawPtr ), ref(other.ref)
+			WeakRefRAII( WeakRefRAII &&other ) noexcept :
+			  rawPtr( other.rawPtr ), ref( other.ref )
 			{
 				other.rawPtr = nullptr;
 				other.ref = nullptr;
 			}
 			~WeakRefRAII()
 			{
-				if ( ref && static_cast<T *>(*ref) != rawPtr ) {
+				if ( ref && static_cast<T *>( *ref ) != rawPtr ) {
 					ref->Attach( rawPtr );
 				}
 			}
 
-			T*& operator*() noexcept { return rawPtr; }
-			const T* operator*() const noexcept { return rawPtr; }
+			T *&operator*() noexcept { return rawPtr; }
+			const T *operator*() const noexcept { return rawPtr; }
 
 			operator T **() noexcept { return &rawPtr; }
 			operator const T **() const noexcept { return &rawPtr; }
-			
 		};
 
 	public:
@@ -191,8 +190,7 @@ VM_EXPORT
 		}
 		void Release()
 		{
-			if ( rawPtr ) 
-			{
+			if ( rawPtr ) {
 				static_cast<RefEverythingType *>( rawPtr )->Release();
 			}
 		}
@@ -266,6 +264,133 @@ VM_EXPORT
 	{
 		return !( A == B );
 	}
+
+	template <typename T>
+	class WeakRef
+	{
+		IRefCnt *cnt = nullptr;
+		T *object = nullptr;
+
+	public:
+		WeakRef( T *object = nullptr ) noexcept :
+		  object( object )
+		{
+			if ( object ) {
+				cnt = object->GetRefCounter();
+				cnt->AddWeakRef();
+			}
+		}
+
+		explicit WeakRef( Ref<T> &p ) noexcept :
+		  cnt( p ? p->GetRefCounter() : nullptr ), object( static_cast<T *>( p ) )
+		{
+			if ( cnt ) {
+				cnt->AddWeakRef();
+			}
+		}
+
+		WeakRef( const WeakRef &p ) noexcept :
+		  cnt( p.cnt ), object( p.object )
+		{
+			if ( cnt ) {
+				cnt->AddWeakRef();
+			}
+		}
+
+		WeakRef( WeakRef &&p ) noexcept :
+		  cnt( std::move( p.cnt ) ), object( std::move( p.object ) )
+		{
+			p.cnt = nullptr;
+			p.object = nullptr;
+		}
+
+		WeakRef &operator=( const WeakRef &p ) noexcept
+		{
+			if ( *this == p )
+				return *this;
+			Release();
+
+			object = p.object;
+			cnt = p.cnt;
+			if ( cnt ) {
+				cnt->AddWeakRef();
+			}
+			return *this;
+		}
+
+		WeakRef &operator=( T *object ) noexcept
+		{
+			return operator=( WeakRef( object ) );
+		}
+
+		WeakRef &operator=( Ref<T> &p ) noexcept
+		{
+			Release();
+			object = static_cast<T *>( p );
+			cnt = object ? object->GetRefCounter() : nullptr;
+			if ( cnt ) {
+				cnt->AddWeakRef();
+			}
+			return *this;
+		}
+
+		WeakRef &operator=( WeakRef &&p ) noexcept
+		{
+			if ( *this == p )
+				return *this;
+
+			Release();
+			object = std::move( p.object );
+			cnt = std::move( p.cnt );
+			p.object = nullptr;
+			p.cnt = nullptr;
+			return *this;
+		}
+
+		bool operator==( const WeakRef &other ) noexcept
+		{
+			return cnt == other.cnt;
+		}
+
+		bool operator!=( const WeakRef &other ) noexcept
+		{
+			return cnt != other.cnt;
+		}
+
+		bool Expired() const
+		{
+			return !( object != nullptr && cnt != nullptr && cnt->GetStrongRefCount() > 0 );
+		}
+
+		Ref<T> Lock()
+		{
+			Ref<T> ret;
+			if ( cnt ) {
+				Ref<IEverything> p;
+				cnt->GetObject( &p );
+				if ( p ) {
+					ret = object;  // why
+				} else {
+					Release();
+				}
+			}
+			return ret;
+		}
+
+		void Release()
+		{
+			if ( cnt ) {
+				cnt->ReleaseWeakRef();
+			}
+			object = nullptr;
+			cnt = nullptr;
+		}
+
+		~WeakRef()
+		{
+			Release();
+		}
+	};
 }
 
 VM_END_MODULE()
