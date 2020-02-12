@@ -117,7 +117,7 @@ VM_EXPORT
 					++p;
 				} while ( *p >= '0' && *p <= '9' );
 				char patt[ 10 ];
-				sprintf( patt, "%%%uu", p - q );
+				sprintf( patt, "%%%uu", unsigned( p - q ) );
 				sscanf( q, patt, &n );
 			} else {
 				throw FmtErr( "expected number: " + str );

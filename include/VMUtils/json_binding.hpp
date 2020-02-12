@@ -36,61 +36,39 @@ struct IsSerializable
 
 }  // namespace __flag
 
-template <typename T, bool = std::is_base_of<
-						__flag::IsSerializable, T>::value>
-struct ToJson;
-
-template <typename T>
-struct ToJson<T, true>
-{
-	static void apply( nlohmann::json &j, const T &e ) { e.serialize( j ); }
-};
-
-template <typename T>
-struct ToJson<std::shared_ptr<T>, false>
-{
-	static void apply( nlohmann::json &j, const std::shared_ptr<T> &e )
-	{
-		if ( e ) {
-			to_json( j, *e );
-		}
-	}
-};
-
-template <typename T, bool = std::is_base_of<
-						__flag::IsSerializable, T>::value>
-struct FromJson;
-
-template <typename T>
-struct FromJson<T, true>
-{
-	static void apply( const nlohmann::json &j, T &e ) { e.deserialize( j ); }
-};
-
-template <typename T>
-struct FromJson<std::shared_ptr<T>, false>
-{
-	static void apply( const nlohmann::json &j, std::shared_ptr<T> &e )
-	{
-		if ( !j.is_null() ) {
-			e.reset( new T() );
-			from_json( j, *e );
-		} else {
-			e = nullptr;
-		}
-	}
-};
-
-template <typename T>
+template <typename T, typename = typename std::enable_if<
+						std::is_base_of<
+						  __flag::IsSerializable, T>::value>::type>
 inline void to_json( nlohmann::json &j, const T &e )
 {
-	ToJson<T>::apply( j, e );
+	e.serialize( j );
+}
+
+template <typename T, typename = typename std::enable_if<
+						std::is_base_of<
+						  __flag::IsSerializable, T>::value>::type>
+inline void from_json( const nlohmann::json &j, T &e )
+{
+	e.deserialize( j );
 }
 
 template <typename T>
-inline void from_json( const nlohmann::json &j, T &e )
+inline void to_json( nlohmann::json &j, const std::shared_ptr<T> &e )
 {
-	FromJson<T>::apply( j, e );
+	if ( e ) {
+		to_json( j, *e );
+	}
+}
+
+template <typename T>
+inline void from_json( const nlohmann::json &j, std::shared_ptr<T> &e )
+{
+	if ( !j.is_null() ) {
+		e.reset( new T() );
+		from_json( j, *e );
+	} else {
+		e = nullptr;
+	}
 }
 
 #define VM_JSON_FIELD( T, name ) \
