@@ -4,7 +4,6 @@
 #include <functional>
 #include <iosfwd>
 #include <string>
-#include <sstream>
 #include <memory>
 #include <vector>
 // #include <vec/vsel.hpp>
@@ -391,22 +390,18 @@ VM_EXPORT
 	struct Writer final : Serializable<Writer>
 	{
 		template <typename T>
-		void write( std::ostream &os, T const &t )
-		{
-			nlohmann::json j = t;
-			j.dump( os, pretty, indent, current_indent );
-		}
-		template <typename T>
 		string write( T const &t )
 		{
-			std::ostringstream os;
-			write( os, t );
-			return os.str();
+			nlohmann::json j = t;
+			return j.dump( indent );
+		}
+		template <typename T>
+		void write( std::ostream &os, T const &t )
+		{
+			os << write( t );
 		}
 
-		VM_JSON_FIELD( bool, pretty ) = false;
 		VM_JSON_FIELD( unsigned, indent ) = 4;
-		VM_JSON_FIELD( unsigned, current_indent ) = 0;
 	};
 
 	}  // namespace json
