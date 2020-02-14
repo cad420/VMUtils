@@ -344,12 +344,36 @@ inline std::istream &operator>>( std::istream &is, T &t )
 	return is;
 }
 
+struct Any : Serializable<Any>
+{
+	template <typename T>
+	T get() const
+	{
+		return _.get<T>();
+	}
+
+public:
+	friend inline void to_json( nlohmann::json &j, Any const &e )
+	{
+		j = e._;
+	}
+
+	friend inline void from_json( nlohmann::json const &j, Any &e )
+	{
+		e._ = j;
+	}
+
+private:
+	nlohmann::json _;
+};
+
 }  // namespace jsel
 
 VM_EXPORT
 {
 	namespace json
 	{
+	using jsel::Any;
 	using jsel::Serializable;
 
 	using jsel::AsArray;
