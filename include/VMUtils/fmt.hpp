@@ -97,7 +97,6 @@ VM_EXPORT
 				p = get_width( p, _, spec );
 				stage = Stage::Width;
 				goto PARSER;
-				break;
 			case '.':
 				earlier_than( Stage::Prec, "unexpected '.': " );
 				p = get_prec( p, _, spec );
