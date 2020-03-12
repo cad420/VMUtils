@@ -352,6 +352,14 @@ struct Any : Serializable<Any>
 		return _.get<T>();
 	}
 
+	template <typename T>
+	void update( T const &e )
+	{
+		nlohmann::json j;
+		to_json( j, e );
+		_.update( j );
+	}
+
 public:
 	friend inline void to_json( nlohmann::json &j, Any const &e )
 	{
