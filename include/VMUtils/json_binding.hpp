@@ -430,7 +430,11 @@ VM_EXPORT
 		string write( T const &t )
 		{
 			nlohmann::json j = t;
-			return j.dump( indent );
+			if ( pretty ) {
+				return j.dump( indent );
+			} else {
+				return j.dump( -1 );
+			}
 		}
 		template <typename T>
 		void write( std::ostream &os, T const &t )
@@ -439,6 +443,7 @@ VM_EXPORT
 		}
 
 		VM_JSON_FIELD( unsigned, indent ) = 4;
+		VM_JSON_FIELD( bool, pretty ) = true;
 	};
 
 	}  // namespace json
