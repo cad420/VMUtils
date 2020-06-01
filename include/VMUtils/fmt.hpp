@@ -9,6 +9,8 @@
 #include <vector>
 #include <array>
 #include <bitset>
+#include <set>
+#include <unordered_set>
 #include <map>
 #include <unordered_map>
 #include <tuple>
@@ -406,6 +408,38 @@ struct FmtStrategy<unordered_map<K, V, H, E, A>>
 	static void apply( ostream &os, unordered_map<K, V, H, E, A> const &t, FmtSpec const &spec )
 	{
 		fmt_map( os, t, spec );
+	}
+};
+
+template <typename T>
+void fmt_set( ostream &os, T const &t, FmtSpec const &spec )
+{
+	os << "{";
+	bool first = true;
+	for ( auto &e : t ) {
+		if ( !first ) {
+			os << ", ";
+		}
+		fmt_impl( os, e );
+		first = false;
+	}
+	os << "}";
+}
+
+template <typename K, typename C, typename A>
+struct FmtStrategy<set<K, C, A>>
+{
+	static void apply( ostream &os, set<K, C, A> const &t, FmtSpec const &spec )
+	{
+		fmt_set( os, t, spec );
+	}
+};
+template <typename K, typename H, typename E, typename A>
+struct FmtStrategy<unordered_set<K, H, E, A>>
+{
+	static void apply( ostream &os, unordered_set<K, H, E, A> const &t, FmtSpec const &spec )
+	{
+		fmt_set( os, t, spec );
 	}
 };
 
