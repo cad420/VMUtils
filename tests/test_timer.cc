@@ -23,6 +23,18 @@ TEST( test_timer, test_timer )
 	EXPECT_DOUBLE_EQ( ms, 1000 * s );
 	EXPECT_DOUBLE_EQ( us, 1000 * ms );
 	EXPECT_DOUBLE_EQ( ns, 1000 * us );
+
+
+  auto tp = Timer::current();
+  std::cout << tp <<std::endl;
+  std::ostringstream ss;
+  ss << tp;
+
+  std::ostringstream ss1;
+  ss1 << tp.to("%c");
+  
+  EXPECT_STREQ(ss.str().c_str(), ss1.str().c_str());
+
 }
 
 TEST( test_scoped, test_scoped )

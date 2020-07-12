@@ -93,7 +93,9 @@ VM_EXPORT
 
 	inline void ThreadPool::Wait()
 	{
-		waitCond.wait( unique_lock<mutex>( mutex() ), [this]() { return this->idle.load() == nthreads && tasks.empty(); } );
+    mutex m;
+    unique_lock<mutex> l(m);
+		waitCond.wait( l, [this]() { return this->idle.load() == nthreads && tasks.empty(); } );
 	}
 
 	// the destructor joins all threads

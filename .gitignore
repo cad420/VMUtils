@@ -4,5 +4,6 @@ third_party
 /.vscode
 /.emacs
 /out
+/compile_commands.json
 CMakeSettings.json
 *~

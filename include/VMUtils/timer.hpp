@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <functional>
+#include <iomanip>
 #include "concepts.hpp"
 #include "modules.hpp"
 
@@ -89,6 +90,31 @@ private:
 	duration<double, typename system_clock::duration::period> _;
 };
 
+
+struct TimePoint{
+  /*
+   * see the std::put_time reference for more detail about the fmt string
+   * */
+  auto to(const char * fmt)const{
+    return put_time(localtime(&_),fmt);
+  } 
+
+  auto cnt()const{
+    return _;
+  }
+  friend ostream & operator<<(ostream &os, TimePoint const & _){
+    return os << _.to("%c");
+  }
+  TimePoint()=default;
+  template<typename C,typename D>
+  TimePoint(time_point<C,D> const &_):
+    _(system_clock::to_time_t(_))
+  {
+  }
+  private:
+  std::time_t _;
+};
+
 struct ScopedImpl;
 
 VM_EXPORT
@@ -113,7 +139,8 @@ VM_EXPORT
 	public:
 		auto duration() const { return duration_; }
 		auto elapsed() const { return Duration( system_clock::now() - begin_ ); }
-
+    static auto current() { return TimePoint(system_clock::now());}
+    
 	public:
 		double eval_remaining_time( float cur_percent ) const
 		{

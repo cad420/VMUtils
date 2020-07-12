@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-#include <VMUtils/ref.hpp>
-#include <VMUtils/ieverything.hpp>
-#include <VMUtils/vmnew.hpp>
-#include <VMUtils/weakref.hpp>
+//#include <VMUtils/ref.hpp>
+//#include <VMUtils/ieverything.hpp>
+//#include <VMUtils/vmnew.hpp>
+//#include <VMUtils/weakref.hpp>
 
 
 //using namespace vm;

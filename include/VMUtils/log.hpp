@@ -12,6 +12,10 @@
 #endif
 
 
+
+
+
+
 VM_BEGIN_MODULE( vm )
 
 template <typename... Args>
@@ -40,6 +44,12 @@ VM_EXPORT
 	void Log( const string &patt, Args &&... args )
 	{
 		dump( patt, false, std::forward<Args>( args )... );
+	}
+
+	template<typename... Args>
+	void LogThrow(const std::string & patt,Args && ...args)
+	{
+		dump(patt,false,std::forward<Args>(args)...);
 	}
 
 	template <typename... Args>
