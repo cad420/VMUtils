@@ -1,17 +1,15 @@
 cmake_minimum_required(VERSION 3.9)
 project(vmutils)
-
-option(VMUTILS_BUILD_TESTS "Set to ON to build tests" OFF)
-
-# install build scripts
-find_package(Git)
-execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive)
-# install external modules
-include(scripts/external.cmake)
-# export targets
-include(export.cmake)
+set(CMAKE_CXX_STANDARD 17)
+target_include_directories(VMUtils
+  INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
 
 # build tests
+
+option(VMUTILS_BUILD_TESTS "Set to ON to build tests" OFF)
 if (VMUTILS_BUILD_TESTS)
   add_subdirectory(tests)
 endif()
